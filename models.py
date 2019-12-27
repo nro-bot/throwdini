@@ -1,4 +1,6 @@
+# NOTE 27 Dec 2019: Can we remove this file in favor of resnet.py?
 #!/usr/bin/env python
+
 
 from collections import OrderedDict
 import numpy as np
