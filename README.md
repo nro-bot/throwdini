@@ -1,3 +1,42 @@
+# To run
+
+```
+python -m playground.run_models_new --device "cuda:0"  --cifar
+
+python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
+--grasp_only --is_testing
+ --save_visualizations
+```
+
+
+## Notes
+### Logging with colors: example
+
+```
+import logging
+from loggerSettings import CustomFormatter
+
+# create logger with 'spam_application'
+logger = logging.getLogger("My_app")
+logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+ch.setFormatter(CustomFormatter())
+
+logger.addHandler(ch)
+
+logger.debug("debug message")
+logger.info("info message")
+logger.warning("warning message")
+logger.error("error message")
+logger.critical("critical message")
+```
+
+
+# Original README:
+
 # Visual Pushing and Grasping Toolbox
 
 Visual Pushing and Grasping (VPG) is a method for training robotic agents to learn how to plan complementary pushing and grasping actions for manipulation (*e.g.* for unstructured pick-and-place applications). VPG operates directly on visual observations (RGB-D images), learns from trial and error, trains quickly, and generalizes to new objects and scenarios.
@@ -43,9 +82,9 @@ If you have any questions or find any bugs, please let me know: [Andy Zeng](http
 
 ## Installation
 
-This implementation requires the following dependencies (tested on Ubuntu 16.04.4 LTS): 
+This implementation requires the following dependencies (tested on Ubuntu 16.04.4 LTS):
 
-* Python 2.7 or Python 3 
+* Python 2.7 or Python 3
 * [NumPy](http://www.numpy.org/), [SciPy](https://www.scipy.org/scipylib/index.html), [OpenCV-Python](https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_tutorials.html), [Matplotlib](https://matplotlib.org/). You can quickly install/update these dependencies by running the following (replace `pip` with `pip3` for Python 3):
   ```shell
   pip install numpy scipy opencv-python matplotlib
@@ -66,7 +105,7 @@ Accelerating training/inference with an NVIDIA GPU requires installing [CUDA](ht
 <img src="images/simulation.gif" height=200px align="right" />
 <img src="images/simulation.jpg" height=200px align="right" />
 
-This demo runs our pre-trained model with a UR5 robot arm in simulation on challenging picking scenarios with adversarial clutter, where grasping an object is generally not feasible without first pushing to break up tight clusters of objects. 
+This demo runs our pre-trained model with a UR5 robot arm in simulation on challenging picking scenarios with adversarial clutter, where grasping an object is generally not feasible without first pushing to break up tight clusters of objects.
 
 ### Instructions
 
@@ -81,7 +120,7 @@ This demo runs our pre-trained model with a UR5 robot arm in simulation on chall
 
 1. Run V-REP (navigate to your V-REP directory and run `./vrep.sh`). From the main menu, select `File` > `Open scene...`, and open the file `visual-pushing-grasping/simulation/simulation.ttt` from this repository.
 
-1. In another terminal window, run the following (simulation will start in the V-REP window): 
+1. In another terminal window, run the following (simulation will start in the V-REP window):
 
     ```shell
     python main.py --is_sim --obj_mesh_dir 'objects/blocks' --num_obj 10 \
@@ -191,7 +230,7 @@ python evaluate.py --session_directory 'logs/YOUR-SESSION-DIRECTORY-NAME-HERE' -
 
 where `SPECIFY-METHOD` can be `reactive` or `reinforcement`, depending on the architecture of your model.
 
-`--num_obj_complete N` defines the number of objects that need to be picked in order to consider the task completed. For example, when evaluating our pre-trained model in the demo test case, `N` should be set to 6: 
+`--num_obj_complete N` defines the number of objects that need to be picked in order to consider the task completed. For example, when evaluating our pre-trained model in the demo test case, `N` should be set to 6:
 
 ```shell
 python evaluate.py --session_directory 'logs/YOUR-SESSION-DIRECTORY-NAME-HERE' --method 'reinforcement' --num_obj_complete 6
@@ -261,7 +300,7 @@ We provide a simple calibration script to estimate camera extrinsics with respec
 
 1. Predefined 3D locations are sampled from a 3D grid of points in the robot's workspace. To modify these locations, change the variables `workspace_limits` and `calib_grid_step` at the top of `calibrate.py`.
 
-1. Measure the offset between the midpoint of the checkerboard pattern to the tool center point in robot coordinates (variable `checkerboard_offset_from_tool`). This offset can change depending on the orientation of the tool (variable `tool_orientation`) as it moves across the predefined locations. Change both of these variables respectively at the top of `calibrate.py`. 
+1. Measure the offset between the midpoint of the checkerboard pattern to the tool center point in robot coordinates (variable `checkerboard_offset_from_tool`). This offset can change depending on the orientation of the tool (variable `tool_orientation`) as it moves across the predefined locations. Change both of these variables respectively at the top of `calibrate.py`.
 
 1. The code directly communicates with the robot via TCP. At the top of `calibrate.py`, change variable `tcp_host_ip` to point to the network IP address of your UR5 robot controller.
 
@@ -271,7 +310,7 @@ We provide a simple calibration script to estimate camera extrinsics with respec
     python calibrate.py
     ```
 
-The script also optimizes for a z-scale factor and saves it into `real/camera_depth_scale.txt`. This scale factor should be multiplied with each depth pixel captured from the camera. This step is more relevant for the RealSense SR300 cameras, which commonly suffer from a severe scaling problem where the 3D data is often 15-20% smaller than real world coordinates. The D400 series are less likely to have such a severe scaling problem. 
+The script also optimizes for a z-scale factor and saves it into `real/camera_depth_scale.txt`. This scale factor should be multiplied with each depth pixel captured from the camera. This step is more relevant for the RealSense SR300 cameras, which commonly suffer from a severe scaling problem where the 3D data is often 15-20% smaller than real world coordinates. The D400 series are less likely to have such a severe scaling problem.
 
 ### Training
 
