@@ -14,20 +14,17 @@ import logging
 from loggerSettings import CustomFormatter
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.WARNING,
-                    format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
-
-
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger('Calibration Logger')
+logger.propagate = False
 
 # add color formatting
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(CustomFormatter())
 logger.addHandler(ch)
+logger.warning("Test logger")
 
-
-logger.warning('hi')
 
 # User options (change me)
 # --------------- Setup options ---------------
@@ -40,7 +37,7 @@ workspace_limits = constants.WORKSPACE_LIMITS
 
 calib_grid_step = 0.15
 checkerboard_offset_from_tool = [-0.0572, 0.000, 0.0185]
-tool_orientation = [1.23, -1.19, -1.19]
+tool_orientation = constants.CALIBRATE_TOOL_ORIENTATION
 
 home_in_rad = constants.CALIBRATE_HOME
 
@@ -65,7 +62,10 @@ calib_grid_x, calib_grid_y, calib_grid_z = np.meshgrid(
 
 num_calib_grid_pts = calib_grid_x.shape[0] * \
     calib_grid_x.shape[1]*calib_grid_x.shape[2]
-print("Calibrating using this many grid points: ", num_calib_grid_pts)
+
+logger.debug('Connecting to robot...')
+logger.info("Calibrating using # grid points: %s" %
+            str(num_calib_grid_pts))
 
 calib_grid_x.shape = (num_calib_grid_pts, 1)
 calib_grid_y.shape = (num_calib_grid_pts, 1)
@@ -78,7 +78,6 @@ observed_pts = []
 observed_pix = []
 
 # Move robot to home pose
-print('Connecting to robot...')
 robot = Robot(False, None, None, workspace_limits,
               tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
               False, None, None, home_joint_config=home_in_rad)
@@ -92,9 +91,19 @@ robot.joint_vel = 1.05
 robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi])
 
 # Move robot to each calibration point in workspace
-print('Collecting data...')
+logger.debug('Collecting data...')
+
+start = time.time()
+
 for calib_pt_idx in range(num_calib_grid_pts):
     tool_position = calib_grid_pts[calib_pt_idx, :]
+
+    dt = time.time() - start
+    logger.info('# %d/%d . Moving to: %s. Elapsed: %.1f secs' % (calib_pt_idx,
+                                                                 num_calib_grid_pts,
+                                                                 tool_position,
+                                                                 dt))
+
     robot.move_to(tool_position, tool_orientation)
     time.sleep(1)
 
@@ -108,6 +117,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
     checkerboard_found, corners = cv2.findChessboardCorners(
         gray_data, checkerboard_size, None, cv2.CALIB_CB_ADAPTIVE_THRESH)
     if checkerboard_found:
+        logger.debug("Found checkerboard.")
         corners_refined = cv2.cornerSubPix(
             gray_data, corners, (3, 3), (-1, -1), refine_criteria)
 
@@ -120,12 +130,17 @@ for calib_pt_idx in range(num_calib_grid_pts):
         checkerboard_y = np.multiply(
             checkerboard_pix[1]-robot.cam_intrinsics[1][2], checkerboard_z/robot.cam_intrinsics[1][1])
         if checkerboard_z == 0:
+            logger.debug('no depth info found')
             continue
 
         # Save calibration point and observed checkerboard center
         observed_pts.append([checkerboard_x, checkerboard_y, checkerboard_z])
         # tool_position[2] += checkerboard_offset_from_tool
-        tool_position = tool_position + checkerboard_offset_from_tool
+        checker_position = tool_position + checkerboard_offset_from_tool
+
+        logger.debug('I measured (calculated)' + str(checker_position))
+        logger.debug('I observed (realsense) %.2f %.2f %.2f' % checkerboard_x, checkerboard_y,
+                     checkerboard_z)
 
         measured_pts.append(tool_position)
         observed_pix.append(checkerboard_pix)
@@ -139,6 +154,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
         cv2.waitKey(10)
 
 # Move robot back to home pose
+logger.info('Going home now!')
 robot.go_home()
 
 measured_pts = np.asarray(measured_pts)
@@ -146,8 +162,12 @@ observed_pts = np.asarray(observed_pts)
 observed_pix = np.asarray(observed_pix)
 world2camera = np.eye(4)
 
-# Estimate rigid transform with SVD (from Nghia Ho)
 
+# -----------
+# Calculate matrix from camera to robot coords
+# -----------
+
+# Estimate rigid transform with SVD (from Nghia Ho)
 
 def get_rigid_transform(A, B):
     assert len(A) == len(B)
@@ -172,9 +192,9 @@ def get_rigid_transform_error(z_scale):
     # Apply z offset and compute new observed points using camera intrinsics
     observed_z = observed_pts[:, 2:] * z_scale
     observed_x = np.multiply(observed_pix[:, [
-                             0]]-robot.cam_intrinsics[0][2], observed_z/robot.cam_intrinsics[0][0])
+        0]]-robot.cam_intrinsics[0][2], observed_z/robot.cam_intrinsics[0][0])
     observed_y = np.multiply(observed_pix[:, [
-                             1]]-robot.cam_intrinsics[1][2], observed_z/robot.cam_intrinsics[1][1])
+        1]]-robot.cam_intrinsics[1][2], observed_z/robot.cam_intrinsics[1][1])
     new_observed_pts = np.concatenate(
         (observed_x, observed_y, observed_z), axis=1)
 
@@ -195,20 +215,23 @@ def get_rigid_transform_error(z_scale):
 
 
 # Optimize z scale w.r.t. rigid transform error
-print('Calibrating...')
+logger.debug('Calibrating...')
+
 z_scale_init = 1
 optim_result = optimize.minimize(
     get_rigid_transform_error, np.asarray(z_scale_init), method='Nelder-Mead')
 camera_depth_offset = optim_result.x
 
 # Save camera optimized offset and camera pose
-print('Saving...')
-# np.savetxt('real/measured_pts.txt', measured_pts, delimiter=' ')
-# np.savetxt('real/observed_pts.txt', observed_pts, delimiter=' ')
-# np.savetxt('real/observed_pix.txt', observed_pix, delimiter=' ')
+logger.debug('Saving...')
 
+np.savetxt('real/measured_pts.txt', measured_pts, delimiter=' ')
+np.savetxt('real/observed_pts.txt', observed_pts, delimiter=' ')
+np.savetxt('real/observed_pix.txt', observed_pix, delimiter=' ')
 np.savetxt('real/camera_depth_scale.txt', camera_depth_offset, delimiter=' ')
+
 get_rigid_transform_error(camera_depth_offset)
 camera_pose = np.linalg.inv(world2camera)
 np.savetxt('real/camera_pose.txt', camera_pose, delimiter=' ')
-print('Done.')
+
+logger.info('Done.')
