@@ -67,8 +67,12 @@ class ParserUtils(object):
                     pdata, "!iB", ("size", "type"))
                 # This is the total size so we resend data to parser
                 data = (pdata + data)[5:]
+
+            # -------------- Robot Mode Data
             elif ptype == 0:
                 # this parses RobotModeData for versions >=3.0 (i.e. 3.0)
+
+                # ---------- version 3.0
                 if psize == 38:
                     self.version = (3, 0)
                     allData['RobotModeData'] = self._get_data(pdata, "!IBQ???????BBdd", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot",
@@ -77,13 +81,23 @@ class ParserUtils(object):
                     self.version = (3, 2)
                     allData['RobotModeData'] = self._get_data(pdata, "!IBQ???????BBdd", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot",
                                                                                          "isEmergencyStopped", "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit"))
+
+                # ---------- 47 bytes in version 3.5
                 elif psize == 47:
                     self.version = (3, 5)
-                    allData['RobotModeData'] = self._get_data(pdata, "!IBQ???????BBddc", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot", "isEmergencyStopped",
-                                                                                          "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit", "reservedByUR"))
+                    # TODO: what is the difference?
+                    # original_fmt_urx_library = "!IBQ???????BBddc"
+                    new_fmt = "!IBQ???????BBddB"
+
+                    allData['RobotModeData'] = self._get_data(pdata, new_fmt, ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot", "isEmergencyStopped",
+                                                                               "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit", "reservedByUR"))
+
+                # ----------
                 else:
                     allData["RobotModeData"] = self._get_data(pdata, "!iBQ???????Bd", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled",
                                                                                        "isPowerOnRobot", "isEmergencyStopped", "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "speedFraction"))
+
+            # -------------- Joint Data
             elif ptype == 1:
                 tmpstr = ["size", "type"]
                 for i in range(0, 6):
