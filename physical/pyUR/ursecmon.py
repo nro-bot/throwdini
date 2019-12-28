@@ -62,6 +62,8 @@ class ParserUtils(object):
         while data:
             psize, ptype, pdata, data = self.analyze_header(data)
             # print "We got packet with size %i and type %s" % (psize, ptype)
+
+            # -------------- Secondary Client Data
             if ptype == 16:
                 allData["SecondaryClientData"] = self._get_data(
                     pdata, "!iB", ("size", "type"))
@@ -72,7 +74,7 @@ class ParserUtils(object):
             elif ptype == 0:
                 # this parses RobotModeData for versions >=3.0 (i.e. 3.0)
 
-                # ---------- version 3.0
+                # ----- version 3.0
                 if psize == 38:
                     self.version = (3, 0)
                     allData['RobotModeData'] = self._get_data(pdata, "!IBQ???????BBdd", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot",
@@ -82,7 +84,7 @@ class ParserUtils(object):
                     allData['RobotModeData'] = self._get_data(pdata, "!IBQ???????BBdd", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot",
                                                                                          "isEmergencyStopped", "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit"))
 
-                # ---------- 47 bytes in version 3.5
+                # ----- version 3.5 (47 bytes)
                 elif psize == 47:
                     self.version = (3, 5)
                     # TODO: what is the difference?
@@ -92,7 +94,7 @@ class ParserUtils(object):
                     allData['RobotModeData'] = self._get_data(pdata, new_fmt, ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot", "isEmergencyStopped",
                                                                                "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit", "reservedByUR"))
 
-                # ----------
+                # ----- other versions
                 else:
                     allData["RobotModeData"] = self._get_data(pdata, "!iBQ???????Bd", ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled",
                                                                                        "isPowerOnRobot", "isEmergencyStopped", "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "speedFraction"))
@@ -107,6 +109,7 @@ class ParserUtils(object):
                 allData["JointData"] = self._get_data(
                     pdata, "!iB dddffffB dddffffB dddffffB dddffffB dddffffB dddffffB", tmpstr)
 
+            # -------------- Cartesian Info
             elif ptype == 4:
                 if self.version < (3, 2):
                     allData["CartesianInfo"] = self._get_data(
@@ -114,9 +117,13 @@ class ParserUtils(object):
                 else:
                     allData["CartesianInfo"] = self._get_data(pdata, "iBdddddddddddd", (
                         "size", "type", "X", "Y", "Z", "Rx", "Ry", "Rz", "tcpOffsetX", "tcpOffsetY", "tcpOffsetZ", "tcpOffsetRx", "tcpOffsetRy", "tcpOffsetRz"))
+
+            # -------------- Obsolete
             elif ptype == 5:
                 allData["LaserPointer(OBSOLETE)"] = self._get_data(
                     pdata, "iBddd", ("size", "type"))
+
+            # -------------- Master Board Data
             elif ptype == 3:
 
                 if self.version >= (3, 0):
@@ -126,23 +133,28 @@ class ParserUtils(object):
 
                 allData["MasterBoardData"] = self._get_data(pdata, fmt, ("size", "type", "digitalInputBits", "digitalOutputBits", "analogInputRange0", "analogInputRange1", "analogInput0", "analogInput1", "analogInputDomain0",
                                                                          "analogInputDomain1", "analogOutput0", "analogOutput1", "masterBoardTemperature", "robotVoltage48V", "robotCurrent", "masterIOCurrent"))  # , "masterSafetyState" ,"masterOnOffState", "euromap67InterfaceInstalled"   ))
+
+            # -------------- Tool Data
             elif ptype == 2:
                 allData["ToolData"] = self._get_data(pdata, "iBbbddfBffB", ("size", "type", "analoginputRange2", "analoginputRange3",
                                                                             "analogInput2", "analogInput3", "toolVoltage48V", "toolOutputVoltage", "toolCurrent", "toolTemperature", "toolMode"))
+
+            # -------------- Ignore
             elif ptype == 9:
                 # This package has a length of 53 bytes. It is used internally by Universal Robots software only and should be skipped.
                 continue
+
+            # -------------- Additional Info
             elif ptype == 8 and self.version >= (3, 2):
                 allData["AdditionalInfo"] = self._get_data(
                     pdata, "iB??", ("size", "type", "teachButtonPressed", "teachButtonEnabled"))
+
+            # -------------- Force Mode Data
             elif ptype == 7 and self.version >= (3, 2):
                 allData["ForceModeData"] = self._get_data(
                     pdata, "iBddddddd", ("size", "type", "x", "y", "z", "rx", "ry", "rz", "robotDexterity"))
-            # elif ptype == 8:
-            #     allData["varMessage"] = self._get_data(pdata, "!iBQbb iiBAcAc", ("size", "type", "timestamp", "source", "robotMessageType", "code", "argument", "titleSize", "messageTitle", "messageText"))
-            # elif ptype == 7:
-            #     allData["keyMessage"] = self._get_data(pdata, "!iBQbb iiBAcAc", ("size", "type", "timestamp", "source", "robotMessageType", "code", "argument", "titleSize", "messageTitle", "messageText"))
 
+            # -------------- Robot Messages
             elif ptype == 20:
                 tmp = self._get_data(
                     pdata, "!iB Qbb", ("size", "type", "timestamp", "source", "robotMessageType"))
@@ -173,6 +185,8 @@ class ParserUtils(object):
                 else:
                     self.logger.debug(
                         "Message type parser not implemented %s", tmp)
+
+            # -------------- Catchall
             else:
                 self.logger.debug(
                     "Unknown packet type %s with size %s", ptype, psize)
