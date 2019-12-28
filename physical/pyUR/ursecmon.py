@@ -25,6 +25,7 @@ __credits__ = ["Olivier Roulet-Dubonnet"]
 __license__ = "LGPLv3"
 
 PACKET_TIMEOUT = 1.0  # original 0.5 sec
+FIND_FIRST_PACKET_ATTEMPTS = 100  # original 10
 
 
 class ParsingException(Exception):
@@ -266,7 +267,7 @@ class ParserUtils(object):
         returns None if none found
         """
         counter = 0
-        limit = 10
+        limit = FIND_FIRST_PACKET_ATTEMPTS
         while True:
             if len(data) >= 5:
                 psize, ptype = self.get_header(data)
