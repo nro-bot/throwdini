@@ -24,6 +24,8 @@ __copyright__ = "Copyright 2011-2013, Sintef Raufoss Manufacturing"
 __credits__ = ["Olivier Roulet-Dubonnet"]
 __license__ = "LGPLv3"
 
+PACKET_TIMEOUT = 1.0  # original 0.5 sec
+
 
 class ParsingException(Exception):
 
@@ -338,7 +340,7 @@ class SecondaryMonitor(Thread):
             with self._prog_queue_lock:
                 self._prog_queue.append(data)
             data.condition.wait()
-            self.logger.debug("program sendt: %s", data)
+            self.logger.debug("program sent: %s", data)
 
     def run(self):
         """
@@ -408,7 +410,7 @@ class SecondaryMonitor(Thread):
                 tmp = self._s_secondary.recv(1024)
                 self._dataqueue += tmp
 
-    def wait(self, timeout=0.5):
+    def wait(self, timeout=PACKET_TIMEOUT):
         """
         wait for next data packet from robot
         """
@@ -430,7 +432,7 @@ class SecondaryMonitor(Thread):
 
     def get_all_data(self, wait=False):
         """
-        return last data obtained from robot in dictionnary format
+        return last data obtained from robot in dictionary format
         """
         if wait:
             self.wait()
