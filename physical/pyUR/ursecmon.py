@@ -510,3 +510,19 @@ class SecondaryMonitor(Thread):
         if self._s_secondary:
             with self._prog_queue_lock:
                 self._s_secondary.close()
+
+    # NOTE: added by nouyang
+    def get_tool_analog_in(self, nb, wait=False):
+        if wait:
+            self.wait()
+        with self._dictLock:
+            astr = self._dict["ToolData"]["analogInput" + str(nb)]
+            print(astr)
+            return astr
+
+    # NOTE: added by nouyang
+    def get_analog_out(self, nb, wait=False):
+        if wait:
+            self.wait()
+        with self._dictLock:
+            return self._dict["MasterBoardData"]["analogOutput" + str(nb)]
