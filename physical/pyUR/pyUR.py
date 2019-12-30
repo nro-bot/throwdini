@@ -3,6 +3,7 @@
 import ursecmon  # NOTE: ursecmon in same folder
 import logging
 import numpy as np
+import constants
 
 __author__ = "Olivier Roulet-Dubonnet"
 __copyright__ = "Copyright 2011-2015, Sintef Raufoss Manufacturing"
@@ -26,9 +27,7 @@ class PyUR(object):
 
         # NOTE: this is for throw practice
         if home_joint_config is None:
-            home_in_deg = np.array(
-                [-10.5, -50.5, 125., -71.9, -277.5, -1.4]) * 1.0
-            self.home_joint_config = np.deg2rad(home_in_deg)
+            self.home_joint_config = constants.GRASP_HOME 
         else:
             self.home_joint_config = home_joint_config
         self.logger.debug("Home config: " + str(self.home_joint_config))
