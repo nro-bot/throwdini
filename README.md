@@ -13,29 +13,11 @@ python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
 ### Logging with colors: example
 
 ```
-import logging
-from loggerSettings import CustomFormatter
-
-# create logger with 'spam_application'
-logger = logging.getLogger("My_app")
-logger.setLevel(logging.DEBUG)
-
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-
-ch.setFormatter(CustomFormatter())
-
-logger.addHandler(ch)
-
-logger.debug("debug message")
-logger.info("info message")
-logger.warning("warning message")
-logger.error("error message")
-logger.critical("critical message")
+$ python __testcolors.py
 ```
 
 
-# Original README:
+# Original README follows
 
 # Visual Pushing and Grasping Toolbox
 
