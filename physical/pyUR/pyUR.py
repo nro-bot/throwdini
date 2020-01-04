@@ -46,29 +46,6 @@ class PyUR(object):
         # self.pose_tolerance = [0.002, 0.002, 0.002, 0.010, 0.010, 0.010]
         self.pose_tolerance = [0.005, 0.005, 0.005, 0.020, 0.020, 0.020]
 
-        self.socket_name = "gripper_socket"
-
-        self.socket_open_str = '\tsocket_open("127.0.0.1", 63352, "gripper_socket")\n'
-        self.socket_close_str = '\tsocket_close("gripper_socket")\n'
-
-        """
-        FOR is the variable
-        range is 0 - 255
-        0 is no force
-        255 is full force
-        """
-        """
-        SPE is the variable
-        range is 0 - 255
-        0 is no speed
-        255 is full speed
-        """
-        """
-        POS is the variable
-        range is 0 - 255
-        0 is open
-        255 is closed
-        """
         self.max_float_length = 6  # according to python-urx lib, UR may have max float length
 
     # -- Gripper commands
