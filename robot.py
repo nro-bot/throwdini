@@ -1,5 +1,5 @@
-import socket
-import select
+# import socket
+# import select
 import struct
 import time
 import os

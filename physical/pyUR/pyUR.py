@@ -13,7 +13,6 @@ __license__ = "LGPLv3"
 class PyUR(object):
     def __init__(self, host, joint_vel, joint_acc, home_joint_config=None, workspace_limits=None):
 
-        self.is_robotiq = False
         self.joint_vel = joint_vel
         self.joint_acc = joint_acc
 
@@ -75,85 +74,50 @@ class PyUR(object):
     # -- Gripper commands
 
     def activate_gripper(self):
-        if self.is_robotiq:
-            prog = "def actGrip():\n"
-            # Activate gripper
-            prog += self.socket_close_str
-            prog += self.socket_open_str
-            # TODO: does this cause the gripper to open and close? to acitvate
-            prog += "socket_set_var(\"{}\",{},\"{}\")\n".format("ACT", 1,
-                                                                self.socket_name)
-            prog += "socket_set_var(\"{}\",{},\"{}\")\n".format("GTO", 1,
-                                                                self.socket_name)
-            prog += "end\n"
-        else:
-            prog =  \
-                '''
-            def start_rg2():
-                set_tool_voltage(0)
-                sleep(1.0)
-                set_digital_out(8, False)
-                set_digital_out(9, False)
-                set_tool_voltage(24)
-                timeout = 0
-                while get_digital_in(9) == False:
-                    timeout = timeout+1
-                    # sleep(0.008)
-                    sleep(0.005)
-                    if timeout > 800:
-                        # wait at most 5 secs
-                        textmsg("breaking")
-                        break
-                    end
-                end
-
-                count = 0
-                textmsg("beginning loop")
-                set_digital_out(9, False)
-                while True:
-                    textmsg(count)
-                    set_digital_out(8, True)
-                    sleep(1)
-                    set_digital_out(8, False)
-                    sleep(1)
-                    count = count + 1
+        prog =  \
+            '''
+        def start_rg2():
+            set_tool_voltage(0)
+            sleep(1.0)
+            set_digital_out(8, False)
+            set_digital_out(9, False)
+            set_tool_voltage(24)
+            timeout = 0
+            while get_digital_in(9) == False:
+                timeout = timeout+1
+                # sleep(0.008)
+                sleep(0.005)
+                if timeout > 800:
+                    # wait at most 5 secs
+                    textmsg("breaking")
+                    break
                 end
             end
-            '''
-        self.logger.debug("Activating gripper")
-        # self.send_program(prog)
+
+            count = 0
+            textmsg("beginning loop")
+            set_digital_out(9, False)
+            while True:
+                textmsg(count)
+                set_digital_out(8, True)
+                sleep(1)
+                set_digital_out(8, False)
+                sleep(1)
+                count = count + 1
+            end
+        end
+        '''
+    self.logger.debug("Activating gripper")
+    # self.send_program(prog)
 
     # We also talk to Robotiq 2F-85 gripper through the UR5 "API"
 
-    def open_gripper(self, async=False, robotiq=False):
-        if self.is_robotiq:
-            prog = "def openGrip():\n"
-            prog += self.socket_close_str
-            prog += self.socket_open_str
-            prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("SPE", 255,
-                                                                  self.socket_name)
-            prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("POS", 0,
-                                                                  self.socket_name)
-            prog += "end\n"
-            self.send_program(prog)
-        else:  # RG2
-            self.send_program("set_digital_out(8,False)\n")
+    def open_gripper(self, async=False):
+        self.send_program("set_digital_out(8,False)\n")
         self.logger.debug("opening gripper")
 
     def close_gripper(self, async=False):
-        if self.is_robotiq:
-            prog = "def closeGrip():\n"
-            prog += self.socket_close_str
-            prog += self.socket_open_str
-            prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("FOR", 20,
-                                                                  self.socket_name)
-            prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("SPE", 255,
-                                                                  self.socket_name)
-            prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("POS", 255,
-                                                                  self.socket_name)
-            prog += "end\n"
-        else:  # rg2
-            self.send_program("set_digital_out(8,True)\n")
+        self.send_program("set_digital_out(8,True)\n")
         self.logger.debug("Closing gripper")
 
         gripper_fully_closed = self.check_grasp()
@@ -161,24 +125,11 @@ class PyUR(object):
         return gripper_fully_closed
 
     def check_grasp(self):
-        if self.is_robotiq:
-            prog = "def setAnalogOutToGripPos():\n"
-            prog += self.socket_close_str
-            prog += self.socket_open_str
-            prog += '\trq_pos = socket_get_var("POS","gripper_socket")\n'
-            prog += "\tset_standard_analog_out(0, rq_pos / 255)\n"
-            prog += "end\n"
-            self.send_program(prog)
-            # TODO: read analog out 0, determine values to compare to
-            # tool_pos = self.get_state('tool_data')
-            # return tool_pos > 9  # TODO
-        else:
-            # Gripper did not close all the way
-            return self.get_state('gripper_width') > 0.26
-            # tool_analog_input2 > 0.26
+        # If tool_analog_input2 > 0.26
+        # Gripper did not close all the way
+        return self.get_state('gripper_width') > 0.26
 
-            # -- Data commands
-
+     # -- Data commands
     def get_state(self, subpackage):
         def get_joint_data(_log=True):
             jts = self.secmon.get_joint_data()
@@ -201,15 +152,11 @@ class PyUR(object):
             return pose
 
         def get_gripper_width(_log=True):
-            # TODO: is this a value b/tw 0 and 10?
-            if self.is_robotiq:
-                width = self.secmon.get_all_data()["ToolData"]["analogInput2"]
-            else:
-                width = self.secmon.get_tool_analog_in(2)
+            width = self.secmon.get_tool_analog_in(2)
             if _log:
                 self.logger.debug(
-                    "Received gripper(is robotiq? % s) width from robot: % s" %
-                    (str(self.is_robotiq), str(width)))
+                    "Received gripper width from robot: % s" %
+                    str(width))
             return width
 
         parse_functions = {'joint_data': get_joint_data,
@@ -332,21 +279,10 @@ class PyUR(object):
         for idx, a_move in enumerate(moves_list):
 
             if a_move["type"] == 'open':
-                if self.is_robotiq:
-                    prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("SPE", 255,
-                                                                          self.socket_name)
-                    prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("POS", 0,
-                                                                          self.socket_name)
-                else:
-                    prog += "\tset_digital_out(8, False)"
+                prog += "\tset_digital_out(8, False)"
 
             elif a_move["type"] == 'close':
-                if self.is_robotiq:
-                    prog += "\tsocket_set_var(\"{}\",{},\"{}\")\n".format("POS",
-                                                                          255,
-                                                                          self.socket_name)
-                else:
-                    prog += "\tset_digital_out(8, True)"
+                prog += "\tset_digital_out(8, True)"
 
             else:
                 if 'radius' not in a_move:
@@ -398,20 +334,27 @@ class PyUR(object):
         """
         self.logger.debug(
             "Waiting for move completion using threshold %s and target %s", threshold, target)
+
+        start_dist = self._get_dist(target, joints)
         if threshold is None:
             # threshold = [0.001] * 6
-            threshold = self.pose_tolerance
+            threshold = start_dist * 0.8
+            threshold = self.pose_tolerance  # NOTE
+            if threshold < 0.001:  # roboten precision is limited
+                threshold = 0.001
             self.logger.debug("No threshold set, setting it to %s", threshold)
+        count = 0
         while True:
             if not self.is_running():
                 # raise RobotException("Robot stopped")
                 self.logger.exception("ROBOT STOPPED!")
-            if joints:
-                actual_pose = self.get_state('joint_data')
-            else:
-                actual_pose = self.get_state('cartesian_info')
+            # if joints:
+                # actual_pose = self.get_state('joint_data')
+            # else:
+                # actual_pose = self.get_state('cartesian_info')
 
-            dist = [np.abs(actual_pose[j] - target[j]) for j in range(6)]
+            # dist = [np.abs(actual_pose[j] - target[j]) for j in range(6)]
+            dist = self._get_dist(target, joints)
             self.logger.debug(
                 "distance to target is: %s, target dist is %s", dist, threshold)
             # if all([np.abs(actual_pose[j] - target[j]) < self.pose_tolerance[j] for j in range(6)]):
@@ -421,42 +364,6 @@ class PyUR(object):
                 self.logger.debug(
                     "We are threshold(%s) close to target, move has ended", threshold)
                 return
-
-    '''
-    def _wait_for_move(self, target, threshold=None, timeout=5, joints=False):
-        """
-        wait for a move to complete. Unfortunately there is no good way to know when a move has finished
-        so for every received data from robot we compute a dist equivalent and when it is lower than
-        'threshold' we return.
-        if threshold is not reached within timeout, an exception is raised
-        """
-        self.logger.debug(
-            "Waiting for move completion using threshold %s and target %s", threshold, target)
-        start_dist = self._get_dist(target, joints)
-        if threshold is None:
-            threshold = start_dist * 0.8
-            if threshold < 0.001:  # roboten precision is limited
-                threshold = 0.001
-            self.logger.debug("No threshold set, setting it to %s", threshold)
-        count = 0
-        while True:
-            if not self.is_running():
-                raise RobotException("Robot stopped")
-            dist = self._get_dist(target, joints)
-            self.logger.debug(
-                "distance to target is: %s, target dist is %s", dist, threshold)
-            if not self.secmon.is_program_running():
-                if dist < threshold:
-                    self.logger.debug(
-                        "we are threshold(%s) close to target, move has ended", threshold)
-                    return
-                count += 1
-                if count > timeout * 10:
-                    raise RobotException("Goal not reached but no program has been running for {} seconds. dist is {}, threshold is {}, target is {}, current pose is {}".format(
-                        timeout, dist, threshold, target, URRobot.getl(self)))
-            else:
-                count = 0
-    '''
 
     def _get_dist(self, target, joints=False):
         if joints:
