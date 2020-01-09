@@ -9,12 +9,17 @@ python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
 ```
 
 
+
 ## Notes
 ### Logging with colors: example
 
 ```
 $ python __testcolors.py
 ```
+
+###
+
+Reactive net used only for results
 
 
 # Original README follows

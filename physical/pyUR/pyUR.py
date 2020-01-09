@@ -1,4 +1,5 @@
 """
+Implements lower-level commands specific to the robot (ur5)
 """
 import ursecmon  # NOTE: ursecmon in same folder
 import logging
@@ -11,45 +12,29 @@ __license__ = "LGPLv3"
 
 
 class PyUR(object):
-    def __init__(self, host, joint_vel, joint_acc, home_joint_config=None, workspace_limits=None):
+    def __init__(self, send_ur5_progs=True):
+    # def __init__(self, host, joint_vel, joint_acc, home_joint_config=None, workspace_limits=None):
 
-        self.joint_vel = joint_vel
-        self.joint_acc = joint_acc
+        self.send_ur5_progs = True
+        self.joint_acc = constants.DEFAULT_JOINT_ACC
+        self.joint_vel = constants.DEFAULT_JOINT_VEL
 
-        # use_rt=False, use_simulation=False):
-        # self.host = host
-        # self.csys = None
         self.logger = logging.getLogger("urx")
         self.logger.debug("Opening secondary monitor socket")
 
-        self.secmon = ursecmon.SecondaryMonitor(host)
+        self.secmon = ursecmon.SecondaryMonitor(tcp_host_ip) # host ip
 
-        # NOTE: this is for throw practice
-        if home_joint_config is None:
-            self.home_joint_config = constants.GRASP_HOME 
-        else:
-            self.home_joint_config = home_joint_config
+        self.home_joint_config = constants.GRASP_HOME
         self.logger.debug("Home config: " + str(self.home_joint_config))
 
-        # self.moveto_limits = (
-        #   [[0.300, 0.600], [-0.250, 0.180], [0.195, 0.571]])
+        self.move_safety_limits = workspace_limits + 0.050 # 5 cm tolerance
 
-        # self.moveto_limits = np.asarray(
-        # [[-0.700, -0.350], [-0.125, 0.225], [-0.290, -0.195]])  # grasp pos
-
-        self.moveto_limits = workspace_limits
-        print('in urcomm init we have limits', self.moveto_limits)
-        # self.moveto_limits = np.asarray(
-        # [[-0.650, -0.400], [-0.100, 0.100], [-0.300, -0.150]])  # for calib
         # Tool pose tolerance for blocking calls (meters)
-        # HACK lower tolerance for now 31 July,bent wrist move not completing
-        # self.pose_tolerance = [0.002, 0.002, 0.002, 0.010, 0.010, 0.010]
         self.pose_tolerance = [0.005, 0.005, 0.005, 0.020, 0.020, 0.020]
 
         self.max_float_length = 6  # according to python-urx lib, UR may have max float length
 
     # -- Gripper commands
-
     def activate_gripper(self):
         prog =  \
             '''
@@ -84,10 +69,8 @@ class PyUR(object):
             end
         end
         '''
-    self.logger.debug("Activating gripper")
-    # self.send_program(prog)
-
-    # We also talk to Robotiq 2F-85 gripper through the UR5 "API"
+        self.logger.debug("Activating gripper")
+        self.send_program(prog)
 
     def open_gripper(self, async=False):
         self.send_program("set_digital_out(8,False)\n")
@@ -96,9 +79,7 @@ class PyUR(object):
     def close_gripper(self, async=False):
         self.send_program("set_digital_out(8,True)\n")
         self.logger.debug("Closing gripper")
-
         gripper_fully_closed = self.check_grasp()
-        # gripper_fully_closed = True
         return gripper_fully_closed
 
     def check_grasp(self):
@@ -106,7 +87,7 @@ class PyUR(object):
         # Gripper did not close all the way
         return self.get_state('gripper_width') > 0.26
 
-     # -- Data commands
+    # -- Data commands
     def get_state(self, subpackage):
         def get_joint_data(_log=True):
             jts = self.secmon.get_joint_data()
@@ -141,7 +122,7 @@ class PyUR(object):
                            get_gripper_width}
         return parse_functions[subpackage]()
 
-    def send_program(self, prog, is_sim=False):
+    def send_program(self, prog, =False):
         # mostly adding a printout for ease of debugging
         if not is_sim:
             self.logger.info("Sending program: " + prog)
@@ -149,13 +130,67 @@ class PyUR(object):
         else:
             self.logger.info("SIM. Would have sent program: " + prog)
 
-    # -- Utils
+    # -- The main course
+    # self.logger.info("NOT Safe. NOT moving to: %s, due to LIMITS: %s",
+    # position, self.moveto_limits)
+    # -- This funciton is needed to batch all the moves, so the robot does not
+    # stop between moves
+    def combo_move(self, moves_list, wait=True, is_sim=False):
+        """
+        Example use:
+        pose_list = [ {type:p, vel:0.1, acc:0.1, radius:0.2},
+                    {type: open}]
+        """
+        prog = "def combo_move():\n"
+        # prog += self.socket_close_str
+        prog += self.socket_open_str
 
+        for idx, move in enumerate(moves_list):
+            # -- gripper commands
+            if move["type"] == 'open':
+                prog += "\tset_digital_out(8, False)"
+            elif move["type"] == 'close':
+                prog += "\tset_digital_out(8, True)"
+            # -- UR5 commands
+            else:
+                # -- Sensible defaults used
+                if 'radius' not in move:
+                    move['radius'] = 0.01
+                if 'acc' not in move:
+                    move['acc'] = self.joint_acc
+                if 'vel' not in move:
+                    move['vel'] = self.joint_vel
+                if idx == (len(moves_list) - 1):
+                    radius = 0.001
+                acc, vel, radius = move["acc"], move["vel"], move["radius"]
+
+                # WARNING: this does not have safety checks!
+                # -- move specified in joint coordinates
+                if move["type"] == 'j':
+                    prog += self._format_move(
+                        "movel", move['pose'], acc, vel, radius, prefix="") + "\n"
+                # -- move specified in cartesian coordinates
+                elif move["type"] == 'p':
+                    prog += self._format_move(
+                        'movel', move['pose'], acc, vel, radius, prefix="p") + "\n"
+        prog += "end\n"
+
+        if wait: # wait for last move
+            joint_flag = False
+            if moves_list[-1]['type'] == 'j':
+                joint_flag = True
+            self._wait_for_move(target=moves_list[-1]['pose'],
+                                threshold=self.pose_tolerance, joints=joint_flag)
+        self.send_program(prog, is_sim=)
+        return self.get_state('cartesian_info')
+
+    # -- Utils
     def _btw(self, a, min, max):
         if (a >= min) and (a <= max):
             return True
         return False
 
+    # quick dumb way to make sure x,y,z limits are respected
     def _is_safe(self, position, limits):
         safe = self._btw(position[0], limits[0][0], limits[0][1]) and \
             self._btw(position[1], limits[1][0], limits[1][1]) and \
@@ -172,127 +207,9 @@ class PyUR(object):
         tpose.append(time)
         return "\t{}({}[{}, {}, {}, {}, {}, {}], a={}, v={}, r={}, t={})\n".format(command, prefix, *tpose)
 
-   # tcp_command += " set_digital_out(8,False)\n"
-   # tcp_command += " movej(p[%f,%f,%f,%f,%f,%f],a=%f,v=%f,t=0,r=0.09)\n" \
-   # % (position[0], position[1], position[2] + 0.1, tool_orientation[0],
-   # tool_orientation[1], 0.0, self.joint_acc * 0.5, self.joint_vel * 0.5)
-   # tcp_command += " movej(p[%f,%f,%f,%f,%f,%f],a=%f,v=%f,t=0,r=0.00)\n" \
-   # % (position[0], position[1], position[2], tool_orientation[0],
-   # tool_orientation[1], 0.0, self.joint_acc * 0.1, self.joint_vel * 0.1)
-   # tcp_command += " set_digital_out(8,True)\n"
-
-    # -- Move commands
-
-    def move_to(self, position, orientation, vel=None, acc=None, radius=0,
-                wait=True, override_safety=False):
-        if vel is None:
-            vel = self.joint_vel
-        if acc is None:
-            acc = self.joint_acc
-        # position ins meters, orientation is axis-angle
-
-        # TODO: Remove this hardcoding
-       # moveto_lims = np.asarray(
-       #     [[-0.700, -0.350], [-0.125, 0.225], [-0.300, -0.000]])  # grasp pos
-
-        if self._is_safe(position, self.moveto_limits) or override_safety:
-            prog = "def moveTo():\n"
-            # t = 0, r = radius
-            if orientation is None:
-                self.logger.info(
-                    "Attempting to move position but keep orientation")
-                print('keep current orient')
-                orientation = self.get_state('cartesian_info')[3:]
-            else:
-                print('new orientation', orientation)
-
-            prog += self._format_move("movel", np.concatenate((position, orientation)),
-                                      acc=acc, vel=vel, prefix="p")
-            prog += "end\n"
-            self.send_program(prog)
-        else:
-            print("NOT Safe. NOT moving to: %s, due to LIMITS: %s",
-                  position, self.moveto_limits)
-            # self.logger.info("NOT Safe. NOT moving to: %s, due to LIMITS: %s",
-            # position, self.moveto_limits)
-        if wait:
-            print('waiting for', position, orientation)
-            self._wait_for_move(np.concatenate((position, orientation)),
-                                joints=False)
-            print('done waiting')
-
-    def move_joints(self, joint_configuration, vel=None, acc=None, wait=True):
-        if vel is None:
-            vel = self.joint_vel
-        if acc is None:
-            acc = self.joint_acc
-
-        # specified in radians
-        prog = "def moveJoint():\n"
-        prog += self._format_move("movel", joint_configuration,
-                                  vel=vel, acc=acc, prefix="")
-        prog += "end\n"
-        self.send_program(prog)
-        if wait:
-            self._wait_for_move(joint_configuration, joints=True)
-
-    def go_home(self):
-        self.logger.debug("Going home.")
-        self.move_joints(self.home_joint_config)
-
     # def get_gripper_width(self):
         # return self.get_state('tool_data')
-
-    def combo_move(self, moves_list, wait=True, is_sim=False):
-        """
-        Example use:
-        pose_list = [ {type:p, vel:0.1, acc:0.1, radius:0.2},
-                    {type: open}]
-        """
-        prog = "def combo_move():\n"
-        # prog += self.socket_close_str
-        prog += self.socket_open_str
-
-        for idx, a_move in enumerate(moves_list):
-
-            if a_move["type"] == 'open':
-                prog += "\tset_digital_out(8, False)"
-
-            elif a_move["type"] == 'close':
-                prog += "\tset_digital_out(8, True)"
-
-            else:
-                if 'radius' not in a_move:
-                    a_move['radius'] = 0.01
-                if 'acc' not in a_move:
-                    # acc = self.joint_acc
-                    a_move['acc'] = self.joint_acc
-                if 'vel' not in a_move:
-                    a_move['vel'] = self.joint_vel
-                if idx == (len(moves_list) - 1):
-                    radius = 0.001
-                    # acc = self.joint_acc
-                    # vel = self.joint_vel
-                acc, vel, radius = a_move["acc"], a_move["vel"], a_move["radius"]
-
-                # WARNING: this does not have safety checks!
-                if a_move["type"] == 'j':
-                    prog += self._format_move(
-                        "movel", a_move['pose'], acc, vel, radius, prefix="") + "\n"
-                elif a_move["type"] == 'p':
-                    prog += self._format_move(
-                        'movel', a_move['pose'], acc, vel, radius, prefix="p") + "\n"
-        prog += "end\n"
-
-        self.send_program(prog, is_sim=is_sim)
-
-        if wait:
-            joint_flag = False
-            if moves_list[-1]['type'] == 'j':
-                joint_flag = True
-            self._wait_for_move(target=moves_list[-1]['pose'],
-                                threshold=self.pose_tolerance, joints=joint_flag)
-            return self.get_state('cartesian_info')
+        # if self._is_safe(position, self.moveto_limits) or override_safety:
 
     def is_running(self):
         """
