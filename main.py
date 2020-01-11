@@ -28,13 +28,16 @@ def main(args):
     logging.basicConfig(level=logging.WARNING)
 
     # --------------- Setup options ---------------
-    is_bullet_sim = args.is_bullet_sim  # Run in simulation?
+    workspace_limits = constants.WORKSPACE_LIMITS
+
+    #is_bullet_sim = args.is_bullet_sim  # Run in simulation?
 
     heightmap_resolution = args.heightmap_resolution  # Meters per pixel of heightmap
     # heightmap_resolution = 0.00115
 
     random_seed = args.random_seed
     force_cpu = args.force_cpu
+
 
     # ------------- Algorithm options -------------
     # 'reactive' (supervised learning) or 'reinforcement' (reinforcement learning ie Q-learning)
@@ -75,7 +78,8 @@ def main(args):
         robot = mock_robot.MockRobot()
     else:
         from robot import Robot
-        robot = Robot(is_bullet_sim=args.is_bullet_sim, send_ur5_progs=args.send_ur5_progs)
+        #robot = Robot(is_bullet_sim=args.is_bullet_sim, send_ur5_progs=args.send_ur5_progs)
+        robot = Robot(send_ur5_progs=args.send_ur5_progs)
 
     # Initialize trainer
     trainer = Trainer(method, push_rewards, future_reward_discount,
@@ -268,8 +272,9 @@ if __name__ == '__main__':
         learning in PyTorch.')
 
     # --------------- Setup options ---------------
-    parser.add_argument('--is_bullet_sim', dest='is_bullet_sim',
-            action='store_true', default=False,     help='run in simulation?')
+    # Bullet sim is run in different 
+    # parser.add_argument('--is_bullet_sim', dest='is_bullet_sim',
+            # action='store_true', default=False,     help='run in simulation?')
     parser.add_argument('--random_seed', dest='random_seed', type=int, action='store', default=1234,
                                                     help='random seed for simulation and neural net initialization')
     parser.add_argument('--cpu', dest='force_cpu', action='store_true', default=False,

@@ -18,7 +18,7 @@ import constants
 
 
 class Robot(object):
-    def __init__(self, is_bullet_sim, send_ur5_progs):
+    def __init__(self, send_ur5_progs):
         self.orig = False
         #self.is_bullet_sim = False
 
