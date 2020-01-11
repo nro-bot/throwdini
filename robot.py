@@ -26,15 +26,13 @@ class Robot(object):
         # Move robot to home pose
         self.r.move_to(constants.GRASP_START_HOME)
 
-        self.r.activate_gripper()
         # self.r.close_gripper()
         # self.r.open_gripper()
 
         # Fetch RGB-D data from RealSense camera
         self.camera = Camera()
-        self.cam_intrinsics = self.camera.intrinsics
-
         # Load camera pose (from running calibrate.py), intrinsics and depth scale
+        self.cam_intrinsics = self.camera.intrinsics
         self.cam_pose = np.loadtxt("real/camera_pose.txt", delimiter=" ")
         self.cam_depth_scale = np.loadtxt(
             "real/camera_depth_scale.txt", delimiter=" ")
@@ -136,6 +134,6 @@ class Robot(object):
         self.r.combo_move([{'type': 'close'}, pretoss, posttoss, {'type': 'open'},
                            back_to_pretoss], wait=True)
 
+    # TODO fill in this function
     def restart_real(self):
-
         self.logger.info('DEBUG: restarting real')

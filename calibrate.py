@@ -12,6 +12,7 @@ import constants
 import sys
 import logging
 from loggerSettings import CustomFormatter
+from pyUR import PyUR
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -25,30 +26,20 @@ ch.setFormatter(CustomFormatter())
 logger.addHandler(ch)
 logger.warning("Test logger")
 
-
-# User options (change me)
-# --------------- Setup options ---------------
-tcp_host_ip = constants.TCP_HOST_IP
-tcp_port = constants.TCP_PORT
-rtc_host_ip = constants.RTC_HOST_IP
-rtc_port = constants.RTC_PORT
-# Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+# ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS
 
 calib_grid_step = 0.15
 checkerboard_offset_from_tool = [-0.0572, 0.000, 0.0185]
 tool_orientation = constants.CALIBRATE_TOOL_ORIENTATION
 
-home_in_rad = constants.CALIBRATE_HOME
-
-
+# (Original)
 # checkerboard_offset_from_tool = [0, -0.13, 0.02]
 # tool_orientation = [-np.pi/2, 0, 0]
 # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 # workspace_limits = np.asarray([[0.3, 0.748], [0.05, 0.4], [-0.2, -0.1]])
 
 # ---------------------------------------------
-
 
 # Construct 3D calibration grid across workspace
 gridspace_x = np.linspace(workspace_limits[0][0], workspace_limits[0][1], 1 + (
@@ -77,18 +68,16 @@ measured_pts = []
 observed_pts = []
 observed_pix = []
 
+# ---------------------------------------------
 # Move robot to home pose
-robot = Robot(False, None, None, workspace_limits,
-              tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-              False, None, None, home_joint_config=home_in_rad)
+robot = PyUR()
 robot.open_gripper()
 
-# Slow down robot
-robot.joint_acc = 1.4
-robot.joint_vel = 1.05
+# Slow down robot (USE physical PENDANT to do so for now)
 
 # Make robot gripper point upwards
-robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi])
+#robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi])
+robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])
 
 # Move robot to each calibration point in workspace
 logger.debug('Collecting data...')
@@ -155,7 +144,8 @@ for calib_pt_idx in range(num_calib_grid_pts):
 
 # Move robot back to home pose
 logger.info('Going home now!')
-robot.go_home()
+robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])
+
 
 measured_pts = np.asarray(measured_pts)
 observed_pts = np.asarray(observed_pts)

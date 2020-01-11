@@ -12,10 +12,15 @@ __license__ = "LGPLv3"
 
 
 class PyUR(object):
-    def __init__(self, send_ur5_progs=True):
-        self.send_ur5_progs = True
-        self.joint_acc = constants.DEFAULT_JOINT_ACC
-        self.joint_vel = constants.DEFAULT_JOINT_VEL
+    def __init__(self, default_acc=None, default_vel=None, send_ur5_progs=True):
+        if default_acc is None:
+            self.joint_acc = constants.DEFAULT_JOINT_ACC
+        else:
+            self.joint_acc = default_acc
+        if default_vel is None:
+            self.joint_vel = constants.DEFAULT_JOINT_VEL
+        else:
+            self.joint_vel = default_vel
 
         self.logger = logging.getLogger("urx")
         self.logger.debug("Opening secondary monitor socket")
@@ -23,8 +28,7 @@ class PyUR(object):
         self.secmon = ursecmon.SecondaryMonitor(
             constants.TCP_HOST_IP)  # host ip
 
-        self.home_joint_config = constants.GRASP_HOME
-        self.logger.debug("Home config: " + str(self.home_joint_config))
+        self.activate_gripper()
 
         # Set limits on where robot can go
         self.workspace_limits = constants.WORKSPACE_LIMITS

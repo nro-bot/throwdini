@@ -32,12 +32,11 @@ def main(args):
 
     #is_bullet_sim = args.is_bullet_sim  # Run in simulation?
 
-    heightmap_resolution = args.heightmap_resolution  # Meters per pixel of heightmap
-    # heightmap_resolution = 0.00115
+    #heightmap_resolution = args.heightmap_resolution  # Meters per pixel of heightmap
+    heightmap_resolution = constants.HEIGHTMAP_RESOLUTION 
 
     random_seed = args.random_seed
     force_cpu = args.force_cpu
-
 
     # ------------- Algorithm options -------------
     # 'reactive' (supervised learning) or 'reinforcement' (reinforcement learning ie Q-learning)
@@ -121,7 +120,7 @@ def main(args):
 
     # Start main training/testing loop
     while True:
-        print('\n%s iteration: %d' %
+        self.logger.warning('\n%s iteration: %d' %
               ('Testing' if dont_train else 'Training', trainer.iteration))
         iteration_time_0 = time.time()
 
@@ -153,21 +152,16 @@ def main(args):
         # Reset simulation or pause real-world training if table is empty
         stuff_count = np.zeros(valid_depth_heightmap.shape)
         stuff_count[valid_depth_heightmap > 0.001] = 1
-        print('DEBUG: depthmap avg', np.average(valid_depth_heightmap))
+        self.logger.debug('DEBUG: depthmap avg %0.2f' % np.average(valid_depth_heightmap))
         # stuff_count[valid_depth_heightmap > 0.02] = 1
-        # empty_threshold = 300  # ORIG
         empty_threshold = 300
-        if is_bullet_sim and dont_train:
-            empty_threshold = 10
-            print('DEBUG: stuff count', np.sum(stuff_count))
 
         if np.sum(stuff_count) < empty_threshold: #or (is_bullet_sim and nonlocal_variables[constants.NO_CHANGE_COUNT] > 10):
             nonlocal_variables[constants.NO_CHANGE_COUNT] = 0
-            if not bullet_sim:
-                print('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
-                    np.sum(stuff_count)))
-                time.sleep(1)
-                robot.restart_real()
+            self.logger.debug('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
+                np.sum(stuff_count)))
+            time.sleep(1)
+            robot.restart_real()
 
             trainer.clearance_log.append([trainer.iteration])
             logger.write_to_log('clearance', trainer.clearance_log)
@@ -177,14 +171,14 @@ def main(args):
             continue
 
         if not exit_called:
-            print("Let's get some grasp predictions")
+            self.logger.debug("Let's get some grasp predictions")
 
             # Run forward pass with network to get affordances
             grasp_predictions = trainer.forward(
                 color_heightmap, valid_depth_heightmap, is_volatile=True)
 
             # talk to the thread: process grasp predictions, maybe save some visualizations and execute robot actions
-            print("executing action--parent")
+            self.logger.debug("executing action--parent")
             nonlocal_variables[constants.GRASP_PREDICTIONS] = grasp_predictions
             nonlocal_variables[constants.VALID_DEPTH_HEIGHTMAP] = valid_depth_heightmap
             nonlocal_variables[constants.COLOR_HEIGHTMAP] = color_heightmap
@@ -197,7 +191,7 @@ def main(args):
             change_detected, change_value = utils.detect_changes(
                 depth_heightmap, prev_depth_heightmap)
             change_detected = change_detected or prev_grasp_success
-            print('Change detected: %r (value: %d)' %
+            self.logger.debug('Change detected: %r (value: %d)' %
                   (change_detected, change_value))
 
             if change_detected:
@@ -260,7 +254,7 @@ def main(args):
 
         trainer.iteration += 1
         iteration_time_1 = time.time()
-        print('Time elapsed: %f' % (iteration_time_1-iteration_time_0))
+        self.logger.debug('Time elapsed: %f' % (iteration_time_1-iteration_time_0))
 
 
 if __name__ == '__main__':
