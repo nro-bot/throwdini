@@ -31,23 +31,7 @@ class Trainer(object):
 
         # Fully convolutional classification network for supervised learning
         if self.method == 'reactive':
-            self.model = reactive_net(self.use_cuda) 
-
-            # Initialize classification loss
-            push_num_classes = 3 # 0 - push, 1 - no change push, 2 - no loss
-            push_class_weights = torch.ones(push_num_classes)
-            push_class_weights[push_num_classes - 1] = 0
-            if self.use_cuda:
-                self.push_criterion = CrossEntropyLoss2d(push_class_weights.cuda()).cuda()
-            else:
-                self.push_criterion = CrossEntropyLoss2d(push_class_weights)
-            grasp_num_classes = 3 # 0 - grasp, 1 - failed grasp, 2 - no loss
-            grasp_class_weights = torch.ones(grasp_num_classes)
-            grasp_class_weights[grasp_num_classes - 1] = 0
-            if self.use_cuda:
-                self.grasp_criterion = CrossEntropyLoss2d(grasp_class_weights.cuda()).cuda()
-            else:
-                self.grasp_criterion = CrossEntropyLoss2d(grasp_class_weights)
+            pass
 
         # Fully convolutional Q network for deep reinforcement learning
         elif self.method == 'reinforcement': 
@@ -163,16 +147,8 @@ class Trainer(object):
         output_prob, state_feat = self.model.forward(input_color_data, input_depth_data, is_volatile, specific_rotation)
 
         if self.method == 'reactive':
+            pass
 
-            # Return affordances (and remove extra padding)
-            for rotate_idx in range(len(output_prob)):
-                if rotate_idx == 0:
-                    push_predictions = F.softmax(output_prob[rotate_idx][0], dim=1).cpu().data.numpy()[:,0,(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2),(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2)]
-                    grasp_predictions = F.softmax(output_prob[rotate_idx][1], dim=1).cpu().data.numpy()[:,0,(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2),(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2)]
-                else:
-                    push_predictions = np.concatenate((push_predictions, F.softmax(output_prob[rotate_idx][0], dim=1).cpu().data.numpy()[:,0,(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2),(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2)]), axis=0)
-                    grasp_predictions = np.concatenate((grasp_predictions, F.softmax(output_prob[rotate_idx][1], dim=1).cpu().data.numpy()[:,0,(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2),(padding_width/2):(color_heightmap_2x.shape[0]/2 - padding_width/2)]), axis=0)
-                    
         elif self.method == 'reinforcement':
 
             # Return Q values (and remove extra padding)
@@ -190,18 +166,7 @@ class Trainer(object):
     def get_label_value(self, primitive_action, push_success, grasp_success, change_detected, prev_push_predictions, prev_grasp_predictions, next_color_heightmap, next_depth_heightmap):
 
         if self.method == 'reactive':
-
-            # Compute label value
-            label_value = 0
-            if primitive_action == 'push':
-                if not change_detected:
-                    label_value = 1
-            elif primitive_action == 'grasp':
-                if not grasp_success:
-                    label_value = 1
-
-            print('Label value: %d' % (label_value))
-            return label_value, label_value
+            pass
 
         elif self.method == 'reinforcement':
 
@@ -241,66 +206,7 @@ class Trainer(object):
     def backprop(self, color_heightmap, depth_heightmap, primitive_action, best_pix_ind, label_value):
 
         if self.method == 'reactive':
-
-            # Compute fill value
-            fill_value = 2
-
-            # Compute labels
-            label = np.zeros((1,320,320)) + fill_value
-            action_area = np.zeros((224,224))
-            action_area[best_pix_ind[1]][best_pix_ind[2]] = 1
-            # blur_kernel = np.ones((5,5),np.float32)/25
-            # action_area = cv2.filter2D(action_area, -1, blur_kernel)
-            tmp_label = np.zeros((224,224)) + fill_value
-            tmp_label[action_area > 0] = label_value
-            label[0,48:(320-48),48:(320-48)] = tmp_label
-
-            # Compute loss and backward pass
-            self.optimizer.zero_grad()
-            loss_value = 0
-            if primitive_action == 'push':
-                # loss = self.push_criterion(self.model.output_prob[best_pix_ind[0]][0], Variable(torch.from_numpy(label).long().cuda()))
-                
-                # Do forward pass with specified rotation (to save gradients)
-                push_predictions, grasp_predictions, state_feat = self.forward(color_heightmap, depth_heightmap, is_volatile=False, specific_rotation=best_pix_ind[0])
-
-                if self.use_cuda:
-                    loss = self.push_criterion(self.model.output_prob[0][0], Variable(torch.from_numpy(label).long().cuda()))
-                else:
-                    loss = self.push_criterion(self.model.output_prob[0][0], Variable(torch.from_numpy(label).long()))
-                loss.backward()
-                loss_value = loss.cpu().data.numpy()[0]
-
-            elif primitive_action == 'grasp':
-                # loss = self.grasp_criterion(self.model.output_prob[best_pix_ind[0]][1], Variable(torch.from_numpy(label).long().cuda()))
-                # loss += self.grasp_criterion(self.model.output_prob[(best_pix_ind[0] + self.model.num_rotations/2) % self.model.num_rotations][1], Variable(torch.from_numpy(label).long().cuda()))
-                
-                # Do forward pass with specified rotation (to save gradients)
-                push_predictions, grasp_predictions, state_feat = self.forward(color_heightmap, depth_heightmap, is_volatile=False, specific_rotation=best_pix_ind[0])
-                
-                if self.use_cuda:
-                    loss = self.grasp_criterion(self.model.output_prob[0][1], Variable(torch.from_numpy(label).long().cuda()))
-                else:
-                    loss = self.grasp_criterion(self.model.output_prob[0][1], Variable(torch.from_numpy(label).long()))
-                loss.backward()
-                loss_value += loss.cpu().data.numpy()[0]
-                
-                # Since grasping is symmetric, train with another forward pass of opposite rotation angle
-                opposite_rotate_idx = (best_pix_ind[0] + self.model.num_rotations/2) % self.model.num_rotations
-
-                push_predictions, grasp_predictions, state_feat = self.forward(color_heightmap, depth_heightmap, is_volatile=False, specific_rotation=opposite_rotate_idx)
-                
-                if self.use_cuda:
-                    loss = self.grasp_criterion(self.model.output_prob[0][1], Variable(torch.from_numpy(label).long().cuda()))
-                else:
-                    loss = self.grasp_criterion(self.model.output_prob[0][1], Variable(torch.from_numpy(label).long()))
-                loss.backward()
-                loss_value += loss.cpu().data.numpy()[0]
-
-                loss_value = loss_value/2
-
-            print('Training loss: %f' % (loss_value))
-            self.optimizer.step()
+            pass
 
         elif self.method == 'reinforcement':
 

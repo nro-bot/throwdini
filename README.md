@@ -16,6 +16,13 @@ python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
 ```
 $ python __testcolors.py
 ```
+### Changes
+
+- Removed reactive flag
+- Removed `is_sim` flag
+- Migrated to pyUR library
+- Added `combo_move` function to clarify move commands
+
 
 ###
 

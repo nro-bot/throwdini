@@ -75,7 +75,7 @@ def main(args):
         robot = mock_robot.MockRobot()
     else:
         from robot import Robot
-        robot = Robot(send_ur5_progs=send_ur5_progs)
+        robot = Robot(is_bullet_sim=args.is_bullet_sim, send_ur5_progs=args.send_ur5_progs)
 
     # Initialize trainer
     trainer = Trainer(method, push_rewards, future_reward_discount,
@@ -122,8 +122,8 @@ def main(args):
         iteration_time_0 = time.time()
 
         # Make sure simulation is still stable (if not, reset simulation)
-        if is_bullet_sim:
-            robot.check_sim()
+        # if is_bullet_sim:
+            # robot.check_sim()
 
         # Get latest RGB-D image
         color_img, depth_img = robot.get_camera_data()
@@ -155,25 +155,13 @@ def main(args):
         empty_threshold = 300
         if is_bullet_sim and dont_train:
             empty_threshold = 10
-        print('DEBUG: stuff count', np.sum(stuff_count))
-        if np.sum(stuff_count) < empty_threshold or (is_bullet_sim and nonlocal_variables[constants.NO_CHANGE_COUNT] > 10):
-            nonlocal_variables[constants.NO_CHANGE_COUNT] = 0
-            if is_bullet_sim:
-                print('Not enough objects in view (value: %d)! Repositioning objects.' % (
-                    np.sum(stuff_count)))
-                robot.restart_sim()
-                robot.add_objects()
-                # If at end of test run, re-load original weights (before test run)
-                if dont_train:
-                    trainer.model.load_state_dict(torch.load(snapshot_file))
-            else:
-                # print('Not enough stuff on the table (value: %d)! Pausing for 30 seconds.' % (np.sum(stuff_count)))
-                # time.sleep(30)
+            print('DEBUG: stuff count', np.sum(stuff_count))
 
-                # TODO: edit
+        if np.sum(stuff_count) < empty_threshold: #or (is_bullet_sim and nonlocal_variables[constants.NO_CHANGE_COUNT] > 10):
+            nonlocal_variables[constants.NO_CHANGE_COUNT] = 0
+            if not bullet_sim:
                 print('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
-                    np.sum(stuff_count))
-                )
+                    np.sum(stuff_count)))
                 time.sleep(1)
                 robot.restart_real()
 

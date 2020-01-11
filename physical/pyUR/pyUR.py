@@ -20,7 +20,8 @@ class PyUR(object):
         self.logger = logging.getLogger("urx")
         self.logger.debug("Opening secondary monitor socket")
 
-        self.secmon = ursecmon.SecondaryMonitor(tcp_host_ip)  # host ip
+        self.secmon = ursecmon.SecondaryMonitor(
+            constants.TCP_HOST_IP)  # host ip
 
         self.home_joint_config = constants.GRASP_HOME
         self.logger.debug("Home config: " + str(self.home_joint_config))
@@ -83,9 +84,8 @@ class PyUR(object):
         return gripper_fully_closed
 
     def check_grasp(self):
-        # If tool_analog_input2 > 0.26
-        # Gripper did not close all the way
-        return self.get_state('gripper_width') > 0.26
+        # If tool_analog_input2 > 0.26, Gripper did not close all the way
+        return self.get_state('gripper_width') > constants.GRIPPER_OPEN_THRESH
 
     # -- Data commands
     def get_state(self, subpackage):
@@ -124,7 +124,7 @@ class PyUR(object):
 
     def send_program(self, prog, send_ur5_progs=True):
         # mostly adding a printout for ease of debugging
-        if not is_sim:
+        if not send_ur5_progs:
             self.logger.info("Sending program: " + prog)
             self.secmon.send_program(prog)
         else:
@@ -133,15 +133,34 @@ class PyUR(object):
     # self.logger.info("NOT Safe. NOT moving to: %s, due to LIMITS: %s",
     # position, self.moveto_limits)
 
-    # TODO: convenience wrapper (back support)
-    def move_to(positon, orientation):
-        pass
+    # repetitive due to being convenience wrapper (backwards compatibility)
+    def move_to(self, position, orientation, vel=None, acc=None, radius=None):
+        # todo; this seems dumb
+        if acc is None:
+            acc = self.joint_acc
+        if vel is None:
+            vel = self.joint_vel
+        if radius is None:
+            radius = 0.001
+        pose = [{'type': 'p',
+                 'pose': np.append(position, orientation),
+                 'vel': vel, 'acc': acc, 'radius': radius}]
+        self.combo_move(pose, wait_last_move=True)
 
-    # TODO: convenience wrapper (back support)
-    def move_joints(positon, orientation):
-        pass
+    # repetitive due to being convenience wrapper (backwards compatibility)
+    def move_joints(self, position, orientation, vel=None, acc=None, radius=None):
+        if acc is None:
+            acc = self.joint_acc
+        if vel is None:
+            vel = self.joint_vel
+        if radius is None:
+            radius = 0.001
+        pose = [{'type': 'j',
+                 'pose': np.append(position, orientation),
+                 'vel': vel, 'acc': acc, 'radius': radius}]
+        self.combo_move(pose, wait_last_move=True)
 
-    # -- This funciton is needed to batch all the moves, so the robot does not
+    # -- This function is needed to batch all the moves, so the robot does not
     # stop between moves
     def combo_move(self, moves_list, wait_last_move=False):
         """
@@ -160,8 +179,6 @@ class PyUR(object):
             # -- UR5 commands
             else:
                 # -- Sensible defaults used
-                if 'wait' not in move:
-                    wait = False
                 if 'radius' not in move:
                     move['radius'] = 0.01
                 if 'acc' not in move:
@@ -171,10 +188,10 @@ class PyUR(object):
                 if idx == (len(moves_list) - 1):
                     radius = 0.001
                 acc, vel, radius = move["acc"], move["vel"], move["radius"]
-
-                # WARNING: this does not have safety checks!
                 # -- move specified in joint coordinates
                 if move["type"] == 'j':
+                    # TODO!! how to convert joint config into cartesian for safety
+                    # check?
                     prog += self._format_move(
                         "movel", move['pose'], acc, vel, radius, prefix="") + "\n"
                 # -- move specified in cartesian coordinates
@@ -183,27 +200,30 @@ class PyUR(object):
                         'movel', move['pose'], acc, vel, radius, prefix="p") + "\n"
         prog += "end\n"
 
-        if wait_last_move:  # wait for last move
+        if wait_last_move:  # wait for last move?
+            # -- determine type of last move
+            is_joint_config = None
             if move["type"] == 'j':
                 is_joint_config = True
             elif move["type"] == 'p':
                 is_joint_config = False
             else:
-                break
-            if moves_list[-1]['type'] == 'j':
-                joint_flag = True
-            self._wait_for_move(target=moves_list[-1]['pose'],
-                                threshold=self.pose_tolerance, joints=joint_flag)
+                # TODO: write more useful error message (include last command)
+                # TODO: Perhaps this should throw an exception and halt program?
+                self.logger.error('Could not wait for move, last specified \
+                                   not a position (probably gripper command)! Continuing...')
+            self._wait_for_move(target=move['pose'],
+                                threshold=self.pose_tolerance,
+                                joints=is_joint_config)
         self.send_program(prog)
         return self.get_state('cartesian_info')
 
-    # quick dumb way to make sure x,y,z limits are respected
+    # Quick dumb way to make sure x,y,z limits are respected
     def _is_safe(self, position):
-        x, y, z = position 
+        x, y, z = position
         xlims, ylims, zlims = self.move_safety_limits
-
-        safe = xlims[0] <= x <= xlims[1] and ylims[0] <= y <= ylims[1] and \
-                zlims[0] <= z <= zlims[1]
+        safe = (xlims[0] <= x <= xlims[1] and ylims[0] <= y <= ylims[1] and
+                zlims[0] <= z <= zlims[1])  # could do a loop but eh
         return safe
 
     def _format_move(self, command, tpose, acc, vel, radius=0, time=0, prefix=""):
@@ -227,6 +247,15 @@ class PyUR(object):
         """
         return self.secmon.running
 
+    def is_program_running(self):
+        """
+        check if program is running on the robot
+        Warning!!!!!:  After sending a program it might take several 10th of
+        a second before the robot enters the running state
+        """
+        return self.secmon.is_program_running()
+
+
     def _wait_for_move(self, target, threshold=None, joints=False):
         """
         Wait for a move to complete. Unfortunately there is no good way to know
@@ -238,36 +267,24 @@ class PyUR(object):
         self.logger.debug(
             "Waiting for move completion using threshold %s and target %s", threshold, target)
 
-        start_dist = self._get_dist(target, joints)
-        if threshold is None:
-            # threshold = [0.001] * 6
-            threshold = start_dist * 0.8
-            threshold = self.pose_tolerance  # NOTE
-            if threshold < 0.001:  # roboten precision is limited
-                threshold = 0.001
-            self.logger.debug("No threshold set, setting it to %s", threshold)
-        count = 0
+        # start_dist = self._get_dist(target, joints)
         while True:
             if not self.is_running():
                 # raise RobotException("Robot stopped")
                 self.logger.exception("ROBOT STOPPED!")
-            # if joints:
-                # actual_pose = self.get_state('joint_data')
-            # else:
-                # actual_pose = self.get_state('cartesian_info')
+            elif not self.secmon.is_program_running():
+                # Once program has sent / been executed...
+                if joints:
+                    actual_pose = self.get_state('joint_data')
+                else:
+                    actual_pose = self.get_state('cartesian_info')
 
-            # dist = [np.abs(actual_pose[j] - target[j]) for j in range(6)]
-            dist = self._get_dist(target, joints)
-            self.logger.debug(
-                "distance to target is: %s, target dist is %s", dist, threshold)
-            # if all([np.abs(actual_pose[j] - target[j]) < self.pose_tolerance[j] for j in range(6)]):
-            #  TODO: we are having some issue where the rx ry rz over ethernet !=
-            # pendant rx ry rz
-            if all([np.abs(actual_pose[j] - target[j]) < self.pose_tolerance[j] for j in range(3)]):
-                self.logger.debug(
-                    "We are threshold(%s) close to target, move has ended", threshold)
+                if all([np.abs(actual_pose[j] - target[j]) < self.pose_tolerance[j] for j in range(3)]):
+                    self.logger.debug(
+                        "We are threshold(%s) close to target, move has ended" % str(threshold))
                 return
 
+    '''
     def _get_dist(self, target, joints=False):
         if joints:
             return self._get_joints_dist(target)
@@ -275,17 +292,23 @@ class PyUR(object):
             return self._get_lin_dist(target)
 
     def _get_lin_dist(self, target):
-        # FIXME: we have an issue here, it seems sometimes the axis angle received from robot
-        pose = URRobot.getl(self, wait=True)
+        self.logger.debug(
+            "Getting linear distance between target and current pose")
+        # FIXME: we have an issue here, it seems sometimes the state in
+        # axis angle received from robot changes drastically
+        pose = self.get_state('cartesian_info')
         dist = 0
         for i in range(3):
             dist += (target[i] - pose[i]) ** 2
         for i in range(3, 6):
-            dist += ((target[i] - pose[i]) / 5) ** 2  # arbitraty length like
+            dist += ((target[i] - pose[i]) / 5) ** 2
         return dist ** 0.5
 
     def _get_joints_dist(self, target):
-        joints = self.getj(wait=True)
+        self.logger.debug(
+            "Getting joints distance between target and current pose")
+        pose = self.get_state('joint_data')
         dist = 0
         for i in range(6):
-            dist += (target[i] - joints[i]) ** 2
+            dist += (target[i] - pose[i]) ** 2
+    '''
