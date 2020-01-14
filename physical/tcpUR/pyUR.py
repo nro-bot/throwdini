@@ -1,7 +1,7 @@
 """
 Implements lower-level commands specific to the robot (ur5)
 """
-import ursecmon  # NOTE: ursecmon in same folder
+from . import ursecmon  # NOTE: ursecmon in same folder
 import logging
 import numpy as np
 import constants
@@ -17,10 +17,13 @@ class PyUR(object):
             self.joint_acc = constants.DEFAULT_JOINT_ACC
         else:
             self.joint_acc = default_acc
+
         if default_vel is None:
             self.joint_vel = constants.DEFAULT_JOINT_VEL
         else:
             self.joint_vel = default_vel
+
+        self.send_ur5_progs = send_ur5_progs
 
         self.logger = logging.getLogger("urx")
         self.logger.debug("Opening secondary monitor socket")
@@ -126,9 +129,9 @@ class PyUR(object):
                            get_gripper_width}
         return parse_functions[subpackage]()
 
-    def send_program(self, prog, send_ur5_progs=True):
+    def send_program(self, prog):
         # mostly adding a printout for ease of debugging
-        if not send_ur5_progs:
+        if self.send_ur5_progs:
             self.logger.info("Sending program: " + prog)
             self.secmon.send_program(prog)
         else:

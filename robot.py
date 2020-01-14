@@ -11,21 +11,20 @@ import utils
 import serial
 import binascii
 
-from pyUR import PyUR
+from physical.pyUR import PyUR
 
 from real.camera import Camera
 import constants
 
 
 class Robot(object):
-    def __init__(self, send_ur5_progs):
+    def __init__(self, send_ur5_progs=True):
         self.orig = False
         #self.is_bullet_sim = False
 
         self.r = PyUR(send_ur5_progs=send_ur5_progs)
         # Move robot to home pose
         self.r.move_to(constants.GRASP_START_HOME)
-
         # self.r.close_gripper()
         # self.r.open_gripper()
 

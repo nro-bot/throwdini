@@ -11,8 +11,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import constants
 import sys
 import logging
-from loggerSettings import CustomFormatter
-from pyUR import PyUR
+from coloredLogger import ColoredFormatter
+from physical.pyUR import PyUR
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
