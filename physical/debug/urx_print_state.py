@@ -3,7 +3,7 @@
 
 # 10 July 2019 -- this works even while inputting commands from pendant
 
-from pyUR.pyUR, import PyUR
+from tcpUR import pyUR
 # import logging
 import time
 import numpy as np
@@ -20,15 +20,15 @@ if __name__ == "__main__":
         sys.exit()
     try:
         while True:
-            pose = rob.getl()
-            # # print(rob)
+            pose = robot.get_state('joint_data')
             print("robot tcp is at: ", np.array(pose), '\n')
+            width = robot.get_state('gripper_width') 
+            print("robot finger width", width)
             # width = rob.secmon.get_cartesian_info()
             # print(rob.secmon.get_all_data()["ToolData"]["analogInput2"])
             # print(rob.secmon.get_all_data()["ToolData"]["analogInput2"])
             # print(rob.secmon.get_all_data()["CartesianInfo"])
             # width = rob.secmon.get_tool_analog_in(2)
-            # print("robot finger width", width)
             time.sleep(0.05)
     except Exception as e:
         print(e)

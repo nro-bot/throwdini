@@ -4,7 +4,7 @@ Implements lower-level commands specific to the robot (ur5)
 from . import ursecmon  # NOTE: ursecmon in same folder
 import logging
 import numpy as np
-import constants
+from . import constants
 
 __author__ = "Olivier Roulet-Dubonnet"
 __copyright__ = "Copyright 2011-2015, Sintef Raufoss Manufacturing"
