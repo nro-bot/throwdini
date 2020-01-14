@@ -9,6 +9,8 @@ from . import constants
 import signal
 import sys
 import os
+import time
+
 __author__ = "Olivier Roulet-Dubonnet"
 __copyright__ = "Copyright 2011-2015, Sintef Raufoss Manufacturing"
 __license__ = "LGPLv3"
@@ -313,6 +315,7 @@ class PyUR(object):
             if not self.is_running():
                 # raise RobotException("Robot stopped")
                 self.logger.exception("ROBOT STOPPED!")
+                time.sleep(0.1)
             elif not self.secmon.is_program_running():
                 # Once program has sent / been executed...
                 if joints:
