@@ -8,27 +8,28 @@ import sys
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     try:
-        robot = PyUR(send_ur5_progs=False)
+        robot = PyUR(send_ur5_progs=True)
         delta = 0.05
         v = 0.05
         a = 0.3
-        pose = robot.get_state('joint_data')
+        pose = robot.get_state('cartesian_info')
         print("robot tcp is at: ", pose, '\n')
 
         print("absolute move in base coordinate ")
         pose[2] += delta
 
         robot.move_to(pose[:3], pose[3:], acc=a, vel=v)
-        pose = robot.get_state('joint_data')
+        pose = robot.get_state('cartesian_info')
         print("robot tcp is at: ", pose, '\n')
 
-        time.sleep(1)
+        time.sleep(3)
 
         print("relative move in base coordinate ")
         # rob.translate((0, 0, -delta), acc=a, vel=v, relative=True)
-        time.sleep(10)
+        time.sleep(3)
 
         pose[2] -= delta
 

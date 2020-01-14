@@ -5,7 +5,7 @@
 # 10 July 2019 -- this works even while inputting commands from pendant
 
 from tcpUR.pyUR import PyUR
-# import logging
+import logging
 import time
 import numpy as np
 import sys
@@ -26,13 +26,13 @@ def keyboardInterruptHandler(signal, frame):
 signal.signal(signal.SIGINT, keyboardInterruptHandler)
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     np.set_printoptions(precision=4)
 
     try:
         robot = PyUR(send_ur5_progs=True)
         while True:
-            pose = robot.get_state('joint_data')
+            pose = robot.get_state('cartesian_info')
             print("robot tcp is at: ", np.array(pose), "\n")
             width = robot.get_state('gripper_width')
             print("robot finger width", width)

@@ -29,11 +29,11 @@ CALIBRATE_HOME = np.deg2rad(np.array([0, -16., 90., -253, -86.5, -181.]))
 CALIBRATE_TOOL_ORIENTATION = [1.23, -1.19, -1.19]
 # When grasping (vs calibrating), where robot should go when turn on
 
-TOUCH_DEBUG_TOOL_ORIENTATION = [2.22,-2.22,0]
+TOUCH_DEBUG_TOOL_ORIENTATION = [2.22, -2.22, 0]
 
 GRASP_START_HOME = np.deg2rad([-10.5, -50.5, 125., -71.9, -277.5, -1.4])
 GRASP_HOME = [-0.445, -0.238, -0.150]
-# NOTE: May decide to have separate THROW HOME  
+# NOTE: May decide to have separate THROW HOME
 
 # [min max] for axes: x y z (define workspace limits in robot coordinates)
 WORKSPACE_LIMITS = np.asarray(
@@ -42,7 +42,10 @@ WORKSPACE_LIMITS = np.asarray(
 JOINT_POSE_TOLERANCE = [0.005, 0.005, 0.005, 0.020, 0.020, 0.020]
 DEFAULT_JOINT_VEL = 1.0
 DEFAULT_JOINT_ACC = 0.7
-
 GRIPPER_OPEN_THRESH = 0.26
 
-HEIGHTMAP_RESOLUTION =  0.00115
+HEIGHTMAP_RESOLUTION = 0.00115
+
+
+PACKET_TIMEOUT = 1.0
+FIND_FIRST_PACKET_ATTEMPTS = 100

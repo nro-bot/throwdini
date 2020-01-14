@@ -18,14 +18,15 @@ import struct
 import socket
 from copy import copy
 import time
+from . import constants
 
 __author__ = "Olivier Roulet-Dubonnet"
 __copyright__ = "Copyright 2011-2013, Sintef Raufoss Manufacturing"
 __credits__ = ["Olivier Roulet-Dubonnet"]
 __license__ = "LGPLv3"
 
-PACKET_TIMEOUT = 1.0  # original 0.5 sec
-FIND_FIRST_PACKET_ATTEMPTS = 100  # original 10
+# PACKET_TIMEOUT = 1.0  # original 0.5 sec
+# FIND_FIRST_PACKET_ATTEMPTS = 100  # original 10
 
 
 class ParsingException(Exception):
@@ -91,11 +92,11 @@ class ParserUtils(object):
                 elif psize == 47:
                     self.version = (3, 5)
                     # TODO: what is the difference?
-                    # original_fmt_urx_library = "!IBQ???????BBddc"
+                    original_fmt_urx_library = "!IBQ???????BBddc"
                     new_fmt = "!IBQ???????BBddB"
 
-                    allData['RobotModeData'] = self._get_data(pdata, new_fmt, ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot", "isEmergencyStopped",
-                                                                               "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit", "reservedByUR"))
+                    allData['RobotModeData'] = self._get_data(pdata, original_fmt_urx_library, ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot", "isEmergencyStopped",
+                                                                                                "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit", "reservedByUR"))
 
                 # ----- other versions
                 else:
@@ -267,7 +268,7 @@ class ParserUtils(object):
         returns None if none found
         """
         counter = 0
-        limit = FIND_FIRST_PACKET_ATTEMPTS
+        limit = constants.FIND_FIRST_PACKET_ATTEMPTS
         while True:
             if len(data) >= 5:
                 psize, ptype = self.get_header(data)
@@ -411,10 +412,11 @@ class SecondaryMonitor(Thread):
                 tmp = self._s_secondary.recv(1024)
                 self._dataqueue += tmp
 
-    def wait(self, timeout=PACKET_TIMEOUT):
+    def wait(self, timeout=constants.PACKET_TIMEOUT):
         """
         wait for next data packet from robot
         """
+        #print('timeout', timeout)
         tstamp = self.lastpacket_timestamp
         with self._dataEvent:
             self._dataEvent.wait(timeout)

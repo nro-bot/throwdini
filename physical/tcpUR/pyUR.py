@@ -3,6 +3,7 @@ Implements lower-level commands specific to the robot (ur5)
 """
 from . import ursecmon  # NOTE: ursecmon in same folder
 import logging
+import math3d as m3d
 import numpy as np
 from . import constants
 import signal
@@ -15,11 +16,12 @@ __license__ = "LGPLv3"
 
 class PyUR(object):
     def __init__(self, default_acc=None, default_vel=None, send_ur5_progs=True):
+        self.csys = m3d.Transform()
+
         if default_acc is None:
             self.joint_acc = constants.DEFAULT_JOINT_ACC
         else:
             self.joint_acc = default_acc
-
         if default_vel is None:
             self.joint_vel = constants.DEFAULT_JOINT_VEL
         else:
@@ -33,7 +35,7 @@ class PyUR(object):
         self.secmon = ursecmon.SecondaryMonitor(
             constants.TCP_HOST_IP)  # host ip
 
-        self.activate_gripper()
+        # self.activate_gripper()
         print('! ---------- NOTE: Make sure to deactivate gripper in Program robot>Installation tab!')
         print('Also, textmsg() shows up in progam robot > Log tab')
 
@@ -46,6 +48,11 @@ class PyUR(object):
 
         self.max_float_length = 6  # according to python-urx lib, UR may have max float length
         signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
+
+        # make sure we get data from robot before letting clients access our methods
+        self.secmon.wait()
+
+
 
     def keyboardInterruptHandler(self, signal, frame):
         print(
@@ -71,11 +78,11 @@ class PyUR(object):
             mycount = 0
             timeout = 0
             set_tool_voltage(0)
-            sleep(1.0)
+            sleep(10.0)
             set_digital_out(8, False)
-            sleep(1.0)
+            sleep(10.0)
             set_digital_out(9, False)
-            sleep(1.0)
+            sleep(10.0)
             set_tool_voltage(24)
 
             while get_digital_in(9) == False:
@@ -88,7 +95,7 @@ class PyUR(object):
                     # wait at most 5 secs
                     textmsg("timeout")
                     textmsg(timeout)
-                    textmsg("breaking")
+                    popup("breaking")
                     break
                 end
             end
@@ -102,9 +109,9 @@ class PyUR(object):
                 sleep(0.005)
                 textmsg(mycount)
                 set_digital_out(8, True)
-                sleep(1.0)
+                sleep(10.0)
                 set_digital_out(8, False)
-                sleep(1.0)
+                sleep(10.0)
             end
         end
         '''
@@ -146,6 +153,9 @@ class PyUR(object):
             if _log:
                 self.logger.debug(
                     "Received pose data from robot: %s", str(pose))
+
+            pose = self.csys.inverse * m3d.Transform(pose)
+            pose = pose.pose_vector.tolist()
             return pose
 
         def get_gripper_width(_log=True):
@@ -161,13 +171,6 @@ class PyUR(object):
                            get_gripper_width}
         return parse_functions[subpackage]()
 
-    def send_program(self, prog):
-        # mostly adding a printout for ease of debugging
-        if self.send_ur5_progs:
-            self.logger.info("Sending program: " + prog)
-            self.secmon.send_program(prog)
-        else:
-            self.logger.info("SIM. Would have sent program: " + prog)
 
     # self.logger.info("NOT Safe. NOT moving to: %s, due to LIMITS: %s",
     # position, self.moveto_limits)
@@ -356,3 +359,11 @@ class PyUR(object):
         self.logger.debug("Closing robot.")
         self.secmon.close()
         self.logger.debug("Robot closed.")
+
+    def send_program(self, prog):
+        # mostly adding a printout for ease of debugging
+        if self.send_ur5_progs:
+            self.logger.info("Sending program: " + prog)
+            self.secmon.send_program(prog)
+        else:
+            self.logger.info("SIM. Would have sent program: " + prog)
