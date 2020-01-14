@@ -34,6 +34,8 @@ class PyUR(object):
             constants.TCP_HOST_IP)  # host ip
 
         self.activate_gripper()
+        print('! ---------- NOTE: Make sure to deactivate gripper in Program robot>Installation tab!')
+        print('Also, textmsg() shows up in progam robot > Log tab')
 
         # Set limits on where robot can go
         self.workspace_limits = constants.WORKSPACE_LIMITS
@@ -55,41 +57,60 @@ class PyUR(object):
 
     # -- Gripper commands
     def activate_gripper(self):
+        prog_sanity = \
+            '''
+        def sanityCheck():
+            textmsg("sanity check")
+            popup("sanity check")
+            end
+        '''
+
         prog =  \
             '''
-            timeout = 0
-            count = 0
         def start_rg2():
+            mycount = 0
+            timeout = 0
             set_tool_voltage(0)
             sleep(1.0)
             set_digital_out(8, False)
+            sleep(1.0)
             set_digital_out(9, False)
+            sleep(1.0)
             set_tool_voltage(24)
+
             while get_digital_in(9) == False:
+                textmsg("digital in false")
                 timeout = timeout+1
                 # sleep(0.008)
                 sleep(0.005)
+                textmsg(timeout)
                 if timeout > 800:
                     # wait at most 5 secs
+                    textmsg("timeout")
+                    textmsg(timeout)
                     textmsg("breaking")
                     break
                 end
             end
 
+            sleep(1.0)
+
             textmsg("beginning loop")
             set_digital_out(9, False)
             while True:
-                textmsg(count)
+                mycount = mycount+1
+                sleep(0.005)
+                textmsg(mycount)
                 set_digital_out(8, True)
-                sleep(1)
+                sleep(1.0)
                 set_digital_out(8, False)
-                sleep(1)
-                count = count + 1
+                sleep(1.0)
             end
         end
         '''
         self.logger.debug("Activating gripper")
         self.send_program(prog)
+        # self.send_program(prog_sanity)
 
     def open_gripper(self, gripper_async=False):
         self.send_program("set_digital_out(8,False)\n")
@@ -302,6 +323,7 @@ class PyUR(object):
                 return
 
     '''
+
     def _get_dist(self, target, joints=False):
         if joints:
             return self._get_joints_dist(target)

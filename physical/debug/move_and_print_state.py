@@ -1,6 +1,6 @@
 # https://github.com/SintefManufacturing/python-urx/blob/master/urx/urrobot.py
 # Must be run with library from the repo
-from tcpUR import pyUR
+from tcpUR.pyUR import PyUR
 import logging
 import time
 import os
@@ -8,12 +8,9 @@ import sys
 
 
 if __name__ == "__main__":
-    try:
-        robot = pyUR(send_ur5_progs=False)
-    except:
-        sys.exit()
 
     try:
+        robot = PyUR(send_ur5_progs=False)
         delta = 0.05
         v = 0.05
         a = 0.3
@@ -50,7 +47,4 @@ if __name__ == "__main__":
         # print("robot tcp is at: ", pose, '\n')
     except Exception as e:  # RobotError, ex:
         print("Robot could not execute move (emergency stop for example), do something", e)
-        # print('exiting')
         sys.exit()
-        print('exiting again')
-        os._exit(1)

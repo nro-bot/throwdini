@@ -46,5 +46,5 @@ if __name__ == "__main__":
             time.sleep(0.05)
     except Exception as e:
         print("Oopsie. Except", e)
-        robot.close()
+        # robot.close()
         sys.exit()
