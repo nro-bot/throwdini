@@ -20,6 +20,7 @@ class PyUR(object):
     def __init__(self, default_acc=None, default_vel=None, send_ur5_progs=True):
         self.csys = m3d.Transform()
 
+
         if default_acc is None:
             self.joint_acc = constants.DEFAULT_JOINT_ACC
         else:
@@ -31,8 +32,31 @@ class PyUR(object):
 
         self.send_ur5_progs = send_ur5_progs
 
+        # Does colored formatter exist, for bash?
+
         self.logger = logging.getLogger("urx")
         self.logger.debug("Opening secondary monitor socket")
+
+        self.logger.propagate = False
+
+        # Does colored formatter exist, for bash?
+        flagColor = False
+        try:
+            file = open("logger.py")
+            flagColor = True
+            self.logger.debug('colored ,og formatter available, using')
+            from logger import ColoredFormatter
+            ch = logging.StreamHandler()
+            ch.setFormatter(ColoredFormatter())
+            self.logger.addHandler(ch)
+        except IOError:
+            print("colored formatter not accessible")
+        finally:
+            file.close()
+
+        if not self.send_ur5_progs:
+            self.logger.warning('WARNING: We are *NOT* sending ur5 programs, ' + \
+                'robot will NOT move')
 
         self.secmon = ursecmon.SecondaryMonitor(
             constants.TCP_HOST_IP)  # host ip
@@ -366,7 +390,7 @@ class PyUR(object):
     def send_program(self, prog):
         # mostly adding a printout for ease of debugging
         if self.send_ur5_progs:
-            self.logger.info("Sending program: " + prog)
+            self.logger.debug("Sending program: " + prog)
             self.secmon.send_program(prog)
         else:
-            self.logger.info("SIM. Would have sent program: " + prog)
+            self.logger.debug("SIM. Would have sent program: " + prog)

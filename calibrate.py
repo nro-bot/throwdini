@@ -11,7 +11,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import constants
 import sys
 import logging
-from coloredLogger import ColoredFormatter
+from logger import ColoredFormatter
 from physical.tcpUR.pyUR import PyUR
 
 
@@ -25,7 +25,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(ColoredFormatter())
 logger.addHandler(ch)
-logger.warning("Calibration logger")
+logger.warning("Now running calibration script, prepare for robot moving")
 
 # ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS
@@ -71,7 +71,7 @@ observed_pix = []
 
 # ---------------------------------------------
 # Move robot to home pose
-robot = PyUR()
+robot = PyUR(send_ur5_progs=False)
 robot.open_gripper()
 
 # Slow down robot (USE physical PENDANT to do so for now)

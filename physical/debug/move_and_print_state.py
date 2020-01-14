@@ -8,10 +8,10 @@ import sys
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    logging.basicConfig(level=logging.INFO)
 
     try:
-        robot = PyUR(send_ur5_progs=True)
+        robot = PyUR(send_ur5_progs=False)
         delta = 0.05
         v = 0.05
         a = 0.3

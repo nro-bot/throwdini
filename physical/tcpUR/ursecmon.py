@@ -307,6 +307,7 @@ class SecondaryMonitor(Thread):
     def __init__(self, host, use_simulation=False):
         Thread.__init__(self)
         self.logger = logging.getLogger("ursecmon")
+
         self._parser = ParserUtils()
         self._dict = {}
         self._dictLock = Lock()
