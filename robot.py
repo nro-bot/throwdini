@@ -11,11 +11,9 @@ import utils
 import serial
 import binascii
 
-from physical.tcpUR.pyUR import PyUR
-
-from real.camera import Camera
 import constants
-
+from physical.tcpUR.pyUR import PyUR
+from real.camera import Camera
 
 class Robot(object):
     def __init__(self, send_ur5_progs=True):

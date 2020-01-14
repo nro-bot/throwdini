@@ -3,17 +3,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-import cv2
-from real.camera import Camera
 # from robot import Robot
+import cv2
 from scipy import optimize
 from mpl_toolkits.mplot3d import Axes3D
 import constants
 import sys
 import logging
+
 from logger import ColoredFormatter
 from physical.tcpUR.pyUR import PyUR
-
+from real.camera import Camera
 
 # Pretty print -- rather unnecessary, can replace with print() if desired
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -25,7 +25,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(ColoredFormatter())
 logger.addHandler(ch)
-logger.warning("Now running calibration script, prepare for robot moving")
+logger.warning("Now running calibration script, prepare for oobot moving")
 
 # ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS
@@ -73,6 +73,7 @@ observed_pix = []
 # Move robot to home pose
 robot = PyUR(send_ur5_progs=False)
 robot.open_gripper()
+myCam = Camera()
 
 # Slow down robot (USE physical PENDANT to do so for now)
 
@@ -101,7 +102,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
     checkerboard_size = (3, 3)
     refine_criteria = (cv2.TERM_CRITERIA_EPS +
                        cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    camera_color_img, camera_depth_img = robot.get_camera_data()
+    camera_color_img, camera_depth_img = myCam.get_data()
     bgr_color_data = cv2.cvtColor(camera_color_img, cv2.COLOR_RGB2BGR)
     gray_data = cv2.cvtColor(bgr_color_data, cv2.COLOR_RGB2GRAY)
     checkerboard_found, corners = cv2.findChessboardCorners(

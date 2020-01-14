@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import cv2
+
 from real.camera import Camera
 from physical.tcpUR.pyUR import PyUR
     
@@ -21,11 +22,11 @@ tool_orientation = constants.TOUCH_DEBUG_TOOL_ORIENTATION
 # ---------------------------------------------
 
 
-
-
 # Move robot to home pose
 robot = PyUR()
 robot.open_gripper()
+
+myCam = Camera()
 
 # Slow down robot
 # NOTE: Override with pendant instead
@@ -34,7 +35,7 @@ robot.open_gripper()
 
 # Callback function for clicking on OpenCV window
 click_point_pix = ()
-camera_color_img, camera_depth_img = robot.get_camera_data()
+camera_color_img, camera_depth_img = myCam.get_data()
 def mouseclick_callback(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         global camera, robot, click_point_pix
@@ -65,7 +66,7 @@ cv2.setMouseCallback('color', mouseclick_callback)
 cv2.namedWindow('depth')
 
 while True:
-    camera_color_img, camera_depth_img = robot.get_camera_data()
+    camera_color_img, camera_depth_img = myCam.get_data()
     bgr_data = cv2.cvtColor(camera_color_img, cv2.COLOR_RGB2BGR)
     if len(click_point_pix) != 0:
         bgr_data = cv2.circle(bgr_data, click_point_pix, 7, (0,0,255), 2)

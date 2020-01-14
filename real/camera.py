@@ -26,7 +26,6 @@ class Camera(object):
         self.intrinsics = None
         self.get_data()
 
-
     def get_data(self):
 
         # Ping the server with anything
