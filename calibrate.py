@@ -12,9 +12,10 @@ import constants
 import sys
 import logging
 from coloredLogger import ColoredFormatter
-from physical.pyUR import PyUR
+from physical.tcpUR.pyUR import PyUR
 
 
+# Pretty print -- rather unnecessary, can replace with print() if desired
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger('Calibration Logger')
 logger.propagate = False
@@ -22,9 +23,9 @@ logger.propagate = False
 # add color formatting
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-ch.setFormatter(CustomFormatter())
+ch.setFormatter(ColoredFormatter())
 logger.addHandler(ch)
-logger.warning("Test logger")
+logger.warning("Calibration logger")
 
 # ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS

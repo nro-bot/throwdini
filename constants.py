@@ -29,6 +29,8 @@ CALIBRATE_HOME = np.deg2rad(np.array([0, -16., 90., -253, -86.5, -181.]))
 CALIBRATE_TOOL_ORIENTATION = [1.23, -1.19, -1.19]
 # When grasping (vs calibrating), where robot should go when turn on
 
+TOUCH_DEBUG_TOOL_ORIENTATION = [2.22,-2.22,0]
+
 GRASP_START_HOME = np.deg2rad([-10.5, -50.5, 125., -71.9, -277.5, -1.4])
 GRASP_HOME = [-0.445, -0.238, -0.150]
 # NOTE: May decide to have separate THROW HOME  

@@ -11,7 +11,7 @@ import utils
 import serial
 import binascii
 
-from physical.pyUR import PyUR
+from physical.tcpUR.pyUR import PyUR
 
 from real.camera import Camera
 import constants

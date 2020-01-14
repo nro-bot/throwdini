@@ -5,29 +5,32 @@ import numpy as np
 import time
 import cv2
 from real.camera import Camera
-from robot import Robot
+from physical.tcpUR.pyUR import PyUR
     
+
+import constants
+#import logging 
+#logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+#import logging
 
 # User options (change me)
 # --------------- Setup options ---------------
-tcp_host_ip = '100.127.7.223' # IP and port to robot arm as TCP client (UR5)
-tcp_port = 30002
-rtc_host_ip = '100.127.7.223' # IP and port to robot arm as real-time client (UR5)
-rtc_port = 30003
-workspace_limits = np.asarray([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-tool_orientation = [2.22,-2.22,0]
+# See constants.py
+tool_orientation = constants.TOUCH_DEBUG_TOOL_ORIENTATION
 # ---------------------------------------------
 
 
+
+
 # Move robot to home pose
-robot = Robot(False, None, None, workspace_limits,
-              tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-              False, None, None)
+robot = PyUR()
 robot.open_gripper()
 
 # Slow down robot
-robot.joint_acc = 1.4
-robot.joint_vel = 1.05
+# NOTE: Override with pendant instead
+#robot.joint_acc = 1.4
+#robot.joint_vel = 1.05
 
 # Callback function for clicking on OpenCV window
 click_point_pix = ()
