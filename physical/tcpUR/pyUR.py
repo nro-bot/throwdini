@@ -262,7 +262,6 @@ class PyUR(object):
         """
         return self.secmon.is_program_running()
 
-
     def _wait_for_move(self, target, threshold=None, joints=False):
         """
         Wait for a move to complete. Unfortunately there is no good way to know
@@ -319,3 +318,8 @@ class PyUR(object):
         for i in range(6):
             dist += (target[i] - pose[i]) ** 2
     '''
+
+    def close(self):
+        self.logger.debug("Closing robot.")
+        self.secmon.close()
+        self.logger.debug("Robot closed.")
