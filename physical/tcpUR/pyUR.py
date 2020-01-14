@@ -5,7 +5,9 @@ from . import ursecmon  # NOTE: ursecmon in same folder
 import logging
 import numpy as np
 from . import constants
-
+import signal
+import sys
+import os
 __author__ = "Olivier Roulet-Dubonnet"
 __copyright__ = "Copyright 2011-2015, Sintef Raufoss Manufacturing"
 __license__ = "LGPLv3"
@@ -41,18 +43,28 @@ class PyUR(object):
         self.pose_tolerance = [0.005, 0.005, 0.005, 0.020, 0.020, 0.020]
 
         self.max_float_length = 6  # according to python-urx lib, UR may have max float length
+        signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
+
+    def keyboardInterruptHandler(self, signal, frame):
+        print(
+            "KeyboardInterrupt (ID: {}) has been caught. Cleaning up...".format(signal))
+        print('exiting')
+        os._exit(1)
+        print('exiting again')
+        sys.exit()
 
     # -- Gripper commands
     def activate_gripper(self):
         prog =  \
             '''
+            timeout = 0
+            count = 0
         def start_rg2():
             set_tool_voltage(0)
             sleep(1.0)
             set_digital_out(8, False)
             set_digital_out(9, False)
             set_tool_voltage(24)
-            timeout = 0
             while get_digital_in(9) == False:
                 timeout = timeout+1
                 # sleep(0.008)
@@ -64,7 +76,6 @@ class PyUR(object):
                 end
             end
 
-            count = 0
             textmsg("beginning loop")
             set_digital_out(9, False)
             while True:
