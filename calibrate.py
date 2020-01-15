@@ -91,9 +91,9 @@ for calib_pt_idx in range(num_calib_grid_pts):
 
     dt = time.time() - start
     logger.info('# %d/%d . Moving to: %s. Elapsed: %.1f secs' % (calib_pt_idx,
-                                                                    num_calib_grid_pts,
-                                                                    tool_position,
-                                                                    dt))
+                                                                 num_calib_grid_pts,
+                                                                 tool_position,
+                                                                 dt))
 
     robot.move_to(tool_position, tool_orientation)
     time.sleep(1)
@@ -101,7 +101,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
     # Find checkerboard center
     checkerboard_size = (3, 3)
     refine_criteria = (cv2.TERM_CRITERIA_EPS +
-                        cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+                       cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     camera_color_img, camera_depth_img = MyCam.get_data()
     bgr_color_data = cv2.cvtColor(camera_color_img, cv2.COLOR_RGB2BGR)
     gray_data = cv2.cvtColor(bgr_color_data, cv2.COLOR_RGB2GRAY)
@@ -115,11 +115,11 @@ for calib_pt_idx in range(num_calib_grid_pts):
         # Get observed checkerboard center 3D point in camera space
         checkerboard_pix = np.round(corners_refined[4, 0, :]).astype(int)
         checkerboard_z = camera_depth_img[checkerboard_pix[1]
-                                            ][checkerboard_pix[0]]
+                                          ][checkerboard_pix[0]]
         checkerboard_x = np.multiply(
-            checkerboard_pix[0]-robot.cam_intrinsics[0][2], checkerboard_z/robot.cam_intrinsics[0][0])
+            checkerboard_pix[0] - MyCam.intrinsics[0][2], checkerboard_z / MyCam.intrinsics[0][0])
         checkerboard_y = np.multiply(
-            checkerboard_pix[1]-robot.cam_intrinsics[1][2], checkerboard_z/robot.cam_intrinsics[1][1])
+            checkerboard_pix[1] - MyCam.intrinsics[1][2], checkerboard_z / MyCam.intrinsics[1][1])
         if checkerboard_z == 0:
             logger.debug('no depth info found')
             continue
@@ -131,8 +131,8 @@ for calib_pt_idx in range(num_calib_grid_pts):
         checker_position = tool_position + checkerboard_offset_from_tool
 
         logger.debug('I measured (calculated)' + str(checker_position))
-        logger.debug('I observed (realsense) %.2f %.2f %.2f' % checkerboard_x, checkerboard_y,
-                        checkerboard_z)
+        logger.debug('I observed (realsense) %.2f %.2f %.2f' %
+                     (checkerboard_x, checkerboard_y, checkerboard_z))
 
         measured_pts.append(tool_position)
         observed_pix.append(checkerboard_pix)
@@ -186,9 +186,9 @@ def get_rigid_transform_error(z_scale):
     # Apply z offset and compute new observed points using camera intrinsics
     observed_z = observed_pts[:, 2:] * z_scale
     observed_x = np.multiply(observed_pix[:, [
-        0]]-robot.cam_intrinsics[0][2], observed_z/robot.cam_intrinsics[0][0])
+        0]] - MyCam.intrinsics[0][2], observed_z / MyCam.intrinsics[0][0])
     observed_y = np.multiply(observed_pix[:, [
-        1]]-robot.cam_intrinsics[1][2], observed_z/robot.cam_intrinsics[1][1])
+        1]] - MyCam.intrinsics[1][2], observed_z / MyCam.intrinsics[1][1])
     new_observed_pts = np.concatenate(
         (observed_x, observed_y, observed_z), axis=1)
 
