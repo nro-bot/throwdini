@@ -38,12 +38,14 @@ DEFAULT_JOINT_ACC = 0.7
 # ([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]])  -- orig = 0.448 x 0.448 x 0.155
 # w
 WORKSPACE_LIMITS = np.asarray(
-    [[-0.600, -0.550], [-0.150, 0.100], [-0.280, -0.150]])
+        [[-0.600, -0.152], [-0.250, 0.224], [-0.280, -0.150]])
+    #[[-0.600, -0.550], [-0.150, 0.100], [-0.280, -0.150]])
     #[[-0.700, -0.550], [-0.250, 0.150], [-0.240, -0.090]])
 
 
 # -- Camera
-HEIGHTMAP_RESOLUTION = 0.00115
+#HEIGHTMAP_RESOLUTION = 0.00115
+HEIGHTMAP_RESOLUTION = 0.002
 # parser.add_argument('--heightmap_resolution', dest='heightmap_resolution',
 
 

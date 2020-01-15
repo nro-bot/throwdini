@@ -12,11 +12,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sc
 import cv2
+import sys
 from collections import namedtuple
 import torch
 from torch.autograd import Variable
 from trainer import Trainer
 from logger import Logger
+from logger import ColoredFormatter
 import logging
 import utils
 import constants
@@ -88,6 +90,19 @@ def main(args):
 
     # Initialize data logger
     logger = Logger(continue_logging, logging_directory)
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    stdoutlogger =  logging.getLogger('Sysout Logger')
+    stdoutlogger.propagate = False
+
+    # add color formatting
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(ColoredFormatter())
+    stdoutlogger.addHandler(ch)
+    stdoutlogger.warning("Now running calibration script, prepare for robot moving")
+
+
     # Save camera intrinsics and pose
     if not use_mock_robot:
         logger.save_camera_info(robot.cam_intrinsics,
@@ -122,7 +137,7 @@ def main(args):
 
     # Start main training/testing loop
     while True:
-        logger.warning('\n%s iteration: %d' %
+        stdoutlogger.warning('\n%s iteration: %d' %
               ('Testing' if dont_train else 'Training', trainer.iteration))
         iteration_time_0 = time.time()
 
@@ -154,13 +169,13 @@ def main(args):
         # Reset simulation or pause real-world training if table is empty
         stuff_count = np.zeros(valid_depth_heightmap.shape)
         stuff_count[valid_depth_heightmap > 0.001] = 1
-        logger.debug('DEBUG: depthmap avg %0.2f' % np.average(valid_depth_heightmap))
+        stdoutlogger.debug('DEBUG: depthmap avg %0.2f' % np.average(valid_depth_heightmap))
         # stuff_count[valid_depth_heightmap > 0.02] = 1
         empty_threshold = 300
 
         if np.sum(stuff_count) < empty_threshold: #or (is_bullet_sim and nonlocal_variables[constants.NO_CHANGE_COUNT] > 10):
             nonlocal_variables[constants.NO_CHANGE_COUNT] = 0
-            logger.debug('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
+            stdoutlogger.debug('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
                 np.sum(stuff_count)))
             time.sleep(1)
             robot.restart_real()
@@ -173,14 +188,14 @@ def main(args):
             continue
 
         if not exit_called:
-            logger.debug("Let's get some grasp predictions")
+            stdoutlogger.debug("Let's get some grasp predictions")
 
             # Run forward pass with network to get affordances
             grasp_predictions = trainer.forward(
                 color_heightmap, valid_depth_heightmap, is_volatile=True)
 
             # talk to the thread: process grasp predictions, maybe save some visualizations and execute robot actions
-            logger.debug("executing action--parent")
+            stdoutlogger.debug("executing action--parent")
             nonlocal_variables[constants.GRASP_PREDICTIONS] = grasp_predictions
             nonlocal_variables[constants.VALID_DEPTH_HEIGHTMAP] = valid_depth_heightmap
             nonlocal_variables[constants.COLOR_HEIGHTMAP] = color_heightmap
@@ -193,7 +208,7 @@ def main(args):
             change_detected, change_value = utils.detect_changes(
                 depth_heightmap, prev_depth_heightmap)
             change_detected = change_detected or prev_grasp_success
-            logger.debug('Change detected: %r (value: %d)' %
+            stdoutlogger.debug('Change detected: %r (value: %d)' %
                   (change_detected, change_value))
 
             if change_detected:
@@ -256,7 +271,7 @@ def main(args):
 
         trainer.iteration += 1
         iteration_time_1 = time.time()
-        logger.debug('Time elapsed: %f' % (iteration_time_1-iteration_time_0))
+        stdoutlogger.debug('Time elapsed: %f' % (iteration_time_1-iteration_time_0))
 
 
 if __name__ == '__main__':
