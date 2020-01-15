@@ -11,6 +11,14 @@ python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
 
 
 ## Notes
+### Wishlist
+
+- Refactor so formatting logger doesn't need to be re-included in each file?
+- Same with the keyboard interrupt, should handle gracefully in one file
+- Add socket.close() for realsense (hunch that it's causing the need to physically
+  attach/detach usb)
+
+
 ### Logging with colors: example
 
 ```

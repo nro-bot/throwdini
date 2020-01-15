@@ -53,3 +53,6 @@ class Camera(object):
                                   np.uint8).reshape(self.im_height, self.im_width, 3)
         depth_img = depth_img.astype(float) * depth_scale
         return color_img, depth_img
+
+    def close(self):
+        self.tcp_socket.close()

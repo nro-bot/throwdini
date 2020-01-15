@@ -24,7 +24,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(ColoredFormatter())
 logger.addHandler(ch)
-logger.warning("Now running calibration script, prepare for oobot moving")
+logger.warning("Now running calibration script, prepare for robot moving")
 
 # ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS

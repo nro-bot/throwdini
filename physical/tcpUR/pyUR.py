@@ -18,8 +18,8 @@ __license__ = "LGPLv3"
 
 class PyUR(object):
     def __init__(self, default_acc=None, default_vel=None, send_ur5_progs=True):
-        self.csys = m3d.Transform()
 
+        self.csys = m3d.Transform()
 
         if default_acc is None:
             self.joint_acc = constants.DEFAULT_JOINT_ACC
@@ -30,7 +30,10 @@ class PyUR(object):
         else:
             self.joint_vel = default_vel
 
-        self.send_ur5_progs = send_ur5_progs
+        if constants.USE_GLOBAL_SEND_UR5_PROGS:
+            self.send_ur5_progs = constants.GLOBAL_SEND_UR5_PROGS
+        else:
+            self.send_ur5_progs = send_ur5_progs
 
         # Does colored formatter exist, for bash?
 
@@ -40,11 +43,9 @@ class PyUR(object):
         self.logger.propagate = False
 
         # Does colored formatter exist, for bash?
-        flagColor = False
         try:
             file = open("logger.py")
-            flagColor = True
-            self.logger.debug('colored ,og formatter available, using')
+            self.logger.debug('colored formatter available, using')
             from logger import ColoredFormatter
             ch = logging.StreamHandler()
             ch.setFormatter(ColoredFormatter())
@@ -57,7 +58,8 @@ class PyUR(object):
         if not self.send_ur5_progs:
             self.logger.warning('WARNING: We are *NOT* sending ur5 programs, ' + \
                 'robot will NOT move')
-
+        else:
+            self.logger.warning('WARNING: sending ur5 progs enabled, EXPECT ROBOT MOVEMENT')
         self.secmon = ursecmon.SecondaryMonitor(
             constants.TCP_HOST_IP)  # host ip
 
@@ -73,11 +75,12 @@ class PyUR(object):
         self.pose_tolerance = [0.005, 0.005, 0.005, 0.020, 0.020, 0.020]
 
         self.max_float_length = 6  # according to python-urx lib, UR may have max float length
-        signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
 
         # make sure we get data from robot before letting clients access our methods
         self.secmon.wait()
 
+        # Allow Keyboard interrupts to be handled gracefully
+        signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
 
 
     def keyboardInterruptHandler(self, signal, frame):
@@ -202,6 +205,7 @@ class PyUR(object):
     # position, self.moveto_limits)
 
     # repetitive due to being convenience wrapper (backwards compatibility)
+    # position in meters, orientation in axis-angle degrees
     def move_to(self, position, orientation, vel=None, acc=None, radius=None):
         # todo; this seems dumb
         if acc is None:
@@ -216,6 +220,7 @@ class PyUR(object):
         self.combo_move(pose, wait_last_move=True)
 
     # repetitive due to being convenience wrapper (backwards compatibility)
+    # position and orientation in radians
     def move_joints(self, position, orientation, vel=None, acc=None, radius=None):
         if acc is None:
             acc = self.joint_acc
