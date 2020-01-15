@@ -5,6 +5,7 @@ import time
 import logging
 import cv2
 import numpy as np
+import signal
 
 from scipy import optimize
 # from robot import Robot
@@ -14,6 +15,7 @@ from logger import ColoredFormatter
 from physical.tcpUR.pyUR import PyUR
 from real.camera import Camera
 
+# ---------------------------------------------
 # Pretty print -- rather unnecessary, can replace with print() if desired
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger('Calibration Logger')
@@ -25,6 +27,7 @@ ch.setLevel(logging.DEBUG)
 ch.setFormatter(ColoredFormatter())
 logger.addHandler(ch)
 logger.warning("Now running calibration script, prepare for robot moving")
+
 
 # ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS
@@ -84,11 +87,21 @@ observed_pix = []
 
 # ---------------------------------------------
 # Move robot to home pose
+# ---------------------------------------------
 robot = PyUR(send_ur5_progs=True)
 robot.open_gripper()
 MyCam = Camera()
 
-# Slow down robot (USE physical PENDANT to do so for now)
+# ---------------------------------------------
+# Handle keyboard interrupts more gracefully
+def keyboardInterruptHandler(signal, frame):
+    logger.error('KeyboardInterrupt, closing camera and exiting')
+    MyCam.close()
+    sys.exit()
+
+signal.signal(signal.SIGINT, keyboardInterruptHandler)
+
+# ---------------------------------------------
 
 # Make robot gripper point upwards
 #robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi])
@@ -97,9 +110,11 @@ robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])
 # Move robot to each calibration point in workspace
 
 
-logger.debug('Collecting data...')
 
+# ---------------------------------------------
+logger.debug('Collecting data...')
 start = time.time()
+
 for calib_pt_idx in range(num_calib_grid_pts):
     gridpoint_xyz = calib_grid_pts[calib_pt_idx, :]
 
@@ -160,6 +175,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
         cv2.waitKey(10)
 
 
+# ---------------------------------------------
 # Move robot back to home pose
 logger.info('Going home now!')
 robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])

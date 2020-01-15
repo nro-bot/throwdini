@@ -87,9 +87,9 @@ class PyUR(object):
         print(
             "KeyboardInterrupt (ID: {}) has been caught. Cleaning up...".format(signal))
         print('exiting')
-        os._exit(1)
-        print('exiting again')
         sys.exit()
+        print('exiting again')
+        os._exit(1)
 
     # -- Gripper commands
     def activate_gripper(self):
