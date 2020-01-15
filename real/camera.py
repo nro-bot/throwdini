@@ -21,7 +21,10 @@ class Camera(object):
 
         # Connect to server
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+        try:
+            self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+        except:
+            print('Conn failed, Is the realsense server running? ./realsense/realsense')
 
         self.intrinsics = None
         self.get_data()

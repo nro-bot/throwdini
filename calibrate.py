@@ -83,68 +83,67 @@ robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])
 # Move robot to each calibration point in workspace
 
 
-def calibrate():
-    logger.debug('Collecting data...')
+logger.debug('Collecting data...')
 
-    start = time.time()
-    for calib_pt_idx in range(num_calib_grid_pts):
-        tool_position = calib_grid_pts[calib_pt_idx, :]
+start = time.time()
+for calib_pt_idx in range(num_calib_grid_pts):
+    tool_position = calib_grid_pts[calib_pt_idx, :]
 
-        dt = time.time() - start
-        logger.info('# %d/%d . Moving to: %s. Elapsed: %.1f secs' % (calib_pt_idx,
-                                                                     num_calib_grid_pts,
-                                                                     tool_position,
-                                                                     dt))
+    dt = time.time() - start
+    logger.info('# %d/%d . Moving to: %s. Elapsed: %.1f secs' % (calib_pt_idx,
+                                                                    num_calib_grid_pts,
+                                                                    tool_position,
+                                                                    dt))
 
-        robot.move_to(tool_position, tool_orientation)
-        time.sleep(1)
+    robot.move_to(tool_position, tool_orientation)
+    time.sleep(1)
 
-        # Find checkerboard center
-        checkerboard_size = (3, 3)
-        refine_criteria = (cv2.TERM_CRITERIA_EPS +
-                           cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        camera_color_img, camera_depth_img = MyCam.get_data()
-        bgr_color_data = cv2.cvtColor(camera_color_img, cv2.COLOR_RGB2BGR)
-        gray_data = cv2.cvtColor(bgr_color_data, cv2.COLOR_RGB2GRAY)
-        checkerboard_found, corners = cv2.findChessboardCorners(
-            gray_data, checkerboard_size, None, cv2.CALIB_CB_ADAPTIVE_THRESH)
-        if checkerboard_found:
-            logger.debug("Found checkerboard.")
-            corners_refined = cv2.cornerSubPix(
-                gray_data, corners, (3, 3), (-1, -1), refine_criteria)
+    # Find checkerboard center
+    checkerboard_size = (3, 3)
+    refine_criteria = (cv2.TERM_CRITERIA_EPS +
+                        cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    camera_color_img, camera_depth_img = MyCam.get_data()
+    bgr_color_data = cv2.cvtColor(camera_color_img, cv2.COLOR_RGB2BGR)
+    gray_data = cv2.cvtColor(bgr_color_data, cv2.COLOR_RGB2GRAY)
+    checkerboard_found, corners = cv2.findChessboardCorners(
+        gray_data, checkerboard_size, None, cv2.CALIB_CB_ADAPTIVE_THRESH)
+    if checkerboard_found:
+        logger.debug("Found checkerboard.")
+        corners_refined = cv2.cornerSubPix(
+            gray_data, corners, (3, 3), (-1, -1), refine_criteria)
 
-            # Get observed checkerboard center 3D point in camera space
-            checkerboard_pix = np.round(corners_refined[4, 0, :]).astype(int)
-            checkerboard_z = camera_depth_img[checkerboard_pix[1]
-                                              ][checkerboard_pix[0]]
-            checkerboard_x = np.multiply(
-                checkerboard_pix[0]-robot.cam_intrinsics[0][2], checkerboard_z/robot.cam_intrinsics[0][0])
-            checkerboard_y = np.multiply(
-                checkerboard_pix[1]-robot.cam_intrinsics[1][2], checkerboard_z/robot.cam_intrinsics[1][1])
-            if checkerboard_z == 0:
-                logger.debug('no depth info found')
-                continue
+        # Get observed checkerboard center 3D point in camera space
+        checkerboard_pix = np.round(corners_refined[4, 0, :]).astype(int)
+        checkerboard_z = camera_depth_img[checkerboard_pix[1]
+                                            ][checkerboard_pix[0]]
+        checkerboard_x = np.multiply(
+            checkerboard_pix[0]-robot.cam_intrinsics[0][2], checkerboard_z/robot.cam_intrinsics[0][0])
+        checkerboard_y = np.multiply(
+            checkerboard_pix[1]-robot.cam_intrinsics[1][2], checkerboard_z/robot.cam_intrinsics[1][1])
+        if checkerboard_z == 0:
+            logger.debug('no depth info found')
+            continue
 
-            # Save calibration point and observed checkerboard center
-            observed_pts.append(
-                [checkerboard_x, checkerboard_y, checkerboard_z])
-            # tool_position[2] += checkerboard_offset_from_tool
-            checker_position = tool_position + checkerboard_offset_from_tool
+        # Save calibration point and observed checkerboard center
+        observed_pts.append(
+            [checkerboard_x, checkerboard_y, checkerboard_z])
+        # tool_position[2] += checkerboard_offset_from_tool
+        checker_position = tool_position + checkerboard_offset_from_tool
 
-            logger.debug('I measured (calculated)' + str(checker_position))
-            logger.debug('I observed (realsense) %.2f %.2f %.2f' % checkerboard_x, checkerboard_y,
-                         checkerboard_z)
+        logger.debug('I measured (calculated)' + str(checker_position))
+        logger.debug('I observed (realsense) %.2f %.2f %.2f' % checkerboard_x, checkerboard_y,
+                        checkerboard_z)
 
-            measured_pts.append(tool_position)
-            observed_pix.append(checkerboard_pix)
+        measured_pts.append(tool_position)
+        observed_pix.append(checkerboard_pix)
 
-            # Draw and display the corners
-            # vis = cv2.drawChessboardCorners(robot.camera.color_data, checkerboard_size, corners_refined, checkerboard_found)
-            vis = cv2.drawChessboardCorners(
-                bgr_color_data, (1, 1), corners_refined[4, :, :], checkerboard_found)
-            cv2.imwrite('%06d.png' % len(measured_pts), vis)
-            cv2.imshow('Calibration', vis)
-            cv2.waitKey(10)
+        # Draw and display the corners
+        # vis = cv2.drawChessboardCorners(robot.camera.color_data, checkerboard_size, corners_refined, checkerboard_found)
+        vis = cv2.drawChessboardCorners(
+            bgr_color_data, (1, 1), corners_refined[4, :, :], checkerboard_found)
+        cv2.imwrite('%06d.png' % len(measured_pts), vis)
+        cv2.imshow('Calibration', vis)
+        cv2.waitKey(10)
 
 
 # Move robot back to home pose
