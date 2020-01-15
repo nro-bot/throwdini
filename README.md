@@ -8,8 +8,6 @@ python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
  --save_visualizations
 ```
 
-
-
 ## Notes
 ### Wishlist
 
@@ -24,6 +22,7 @@ python main.py --tcp_host_ip '10.75.15.94' --tcp_port 30002 \
 ```
 $ python __testcolors.py
 ```
+
 ### Changes
 
 - Removed reactive flag

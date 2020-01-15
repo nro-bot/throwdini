@@ -38,6 +38,8 @@ def main(args):
     random_seed = args.random_seed
     force_cpu = args.force_cpu
 
+    use_mock_robot = args.use_mock_robot
+
     # ------------- Algorithm options -------------
     # 'reactive' (supervised learning) or 'reinforcement' (reinforcement learning ie Q-learning)
     method = args.method
@@ -120,7 +122,7 @@ def main(args):
 
     # Start main training/testing loop
     while True:
-        self.logger.warning('\n%s iteration: %d' %
+        logger.warning('\n%s iteration: %d' %
               ('Testing' if dont_train else 'Training', trainer.iteration))
         iteration_time_0 = time.time()
 
@@ -152,13 +154,13 @@ def main(args):
         # Reset simulation or pause real-world training if table is empty
         stuff_count = np.zeros(valid_depth_heightmap.shape)
         stuff_count[valid_depth_heightmap > 0.001] = 1
-        self.logger.debug('DEBUG: depthmap avg %0.2f' % np.average(valid_depth_heightmap))
+        logger.debug('DEBUG: depthmap avg %0.2f' % np.average(valid_depth_heightmap))
         # stuff_count[valid_depth_heightmap > 0.02] = 1
         empty_threshold = 300
 
         if np.sum(stuff_count) < empty_threshold: #or (is_bullet_sim and nonlocal_variables[constants.NO_CHANGE_COUNT] > 10):
             nonlocal_variables[constants.NO_CHANGE_COUNT] = 0
-            self.logger.debug('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
+            logger.debug('Not enough stuff on the table (value: %d)! Flipping over bin of objects...' % (
                 np.sum(stuff_count)))
             time.sleep(1)
             robot.restart_real()
@@ -171,14 +173,14 @@ def main(args):
             continue
 
         if not exit_called:
-            self.logger.debug("Let's get some grasp predictions")
+            logger.debug("Let's get some grasp predictions")
 
             # Run forward pass with network to get affordances
             grasp_predictions = trainer.forward(
                 color_heightmap, valid_depth_heightmap, is_volatile=True)
 
             # talk to the thread: process grasp predictions, maybe save some visualizations and execute robot actions
-            self.logger.debug("executing action--parent")
+            logger.debug("executing action--parent")
             nonlocal_variables[constants.GRASP_PREDICTIONS] = grasp_predictions
             nonlocal_variables[constants.VALID_DEPTH_HEIGHTMAP] = valid_depth_heightmap
             nonlocal_variables[constants.COLOR_HEIGHTMAP] = color_heightmap
@@ -191,7 +193,7 @@ def main(args):
             change_detected, change_value = utils.detect_changes(
                 depth_heightmap, prev_depth_heightmap)
             change_detected = change_detected or prev_grasp_success
-            self.logger.debug('Change detected: %r (value: %d)' %
+            logger.debug('Change detected: %r (value: %d)' %
                   (change_detected, change_value))
 
             if change_detected:
@@ -254,7 +256,7 @@ def main(args):
 
         trainer.iteration += 1
         iteration_time_1 = time.time()
-        self.logger.debug('Time elapsed: %f' % (iteration_time_1-iteration_time_0))
+        logger.debug('Time elapsed: %f' % (iteration_time_1-iteration_time_0))
 
 
 if __name__ == '__main__':
@@ -275,9 +277,12 @@ if __name__ == '__main__':
                                                     help='force code to run in CPU mode')
 
     # ------------- Algorithm options -------------
+    parser.add_argument('--push_rewards', dest='push_rewards',
+                            action='store_true', default=False,
+                            help='use immediate rewards (from change detection) for pushing?')
     # We only use reinforcement (immediate online rewards) for now
-    # parser.add_argument('--method', dest='method', action='store', default='reinforcement',
-                        # help='set to \'reactive\' (supervised learning) or \'reinforcement\' (reinforcement learning ie Q-learning)')
+    parser.add_argument('--method', dest='method', action='store', default='reinforcement',
+                        help='set to \'reactive\' (supervised learning) or \'reinforcement\' (reinforcement learning ie Q-learning)')
     parser.add_argument('--future_reward_discount', dest='future_reward_discount', type=float, action='store', default=0.5)
     parser.add_argument('--experience_replay', dest='experience_replay', action='store_true',
                         default=False,              help='use prioritized experience replay?')
@@ -304,7 +309,7 @@ if __name__ == '__main__':
                         default=False,              help='load pre-trained snapshot of model?')
     parser.add_argument('--snapshot_file',
                         dest='snapshot_file', action='store')
-    parser.add_argument'--continue_logging', dest='continue_logging', action='store_true',
+    parser.add_argument('--continue_logging', dest='continue_logging', action='store_true',
                         default=False,              help='continue logging from previous session?')
     parser.add_argument('--logging_directory',
                         dest='logging_directory', action='store')

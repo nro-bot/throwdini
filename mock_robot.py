@@ -21,12 +21,12 @@ class MockRobot(object):
                 "real/camera_depth_scale.txt", delimiter=" ")
         except:
             self.use_cam = False
-            print('Failed to open camera)
+            print('Failed to open camera')
 
     # Get image
     def get_camera_data(self):
         if self.use_cam:
-            image, depth = camera.get_data()
+            image, depth = self.camera.get_data()
         else:
             image = np.random.uniform(0, 1, size=(112, 112, 3)).astype(np.float32)
             depth = np.random.uniform(0, 1, size=(112, 112)).astype(np.float32)
