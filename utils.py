@@ -41,6 +41,8 @@ def get_heightmap(color_img, depth_img, cam_intrinsics, cam_pose, workspace_limi
 
     # Compute heightmap size
     heightmap_size = np.round(((workspace_limits[1][1] - workspace_limits[1][0])/heightmap_resolution, (workspace_limits[0][1] - workspace_limits[0][0])/heightmap_resolution)).astype(int)
+    print('heightmap_size: %s' % str(heightmap_size))
+
 
     # Get 3D point cloud from RGB-D images
     surface_pts, color_pts = get_pointcloud(color_img, depth_img, cam_intrinsics)

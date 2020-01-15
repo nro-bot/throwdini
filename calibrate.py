@@ -179,6 +179,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
 # Move robot back to home pose
 logger.info('Going home now!')
 robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])
+MyCam.close()
 
 
 measured_pts = np.asarray(measured_pts)
@@ -264,3 +265,4 @@ logger.warning('camera pose\n%s' % str(camera_pose))
 np.savetxt('real/camera_pose.txt', camera_pose, delimiter=' ')
 
 logger.info('Done.')
+
