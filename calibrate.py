@@ -29,15 +29,29 @@ logger.warning("Now running calibration script, prepare for oobot moving")
 # ---------------------------------------------
 workspace_limits = constants.WORKSPACE_LIMITS
 
-calib_grid_step = 0.15
+calib_grid_step = constants.GRID_STEP
+
 checkerboard_offset_from_tool = [-0.0572, 0.000, 0.0185]
 tool_orientation = constants.CALIBRATE_TOOL_ORIENTATION
 
-# (Original)
+# --- (Original)
+'''
 # checkerboard_offset_from_tool = [0, -0.13, 0.02]
 # tool_orientation = [-np.pi/2, 0, 0]
 # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-# workspace_limits = np.asarray([[0.3, 0.748], [0.05, 0.4], [-0.2, -0.1]])
+# self.move_joints(home_joint_config) = 
+# [-(180.0/360.0)*2*np.pi, -(84.2/360.0)*2*np.pi, (112.8/360.0)*2*np.pi, -(119.7/360.0)*2*np.pi, -(90.0/360.0)*2*np.pi, 0.0]
+##workspace_limits = np.asarray([[0.3, 0.748], [0.05, 0.4], [-0.2, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+##calib_grid_step = 0.05
+## checkerboard_offset_from_tool = [0,-0.13,0.02]
+## tool_orientation = [-np.pi/2,0,0] # [0,-2.22,2.22] # [2.22,2.22,0]
+# Make robot gripper point upwards
+# NOTE: this results in straight out robot, with gripper up, and facing me
+## robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi]) 
+# NOTE: this tool orientation = all the way opposite around!  Use +1.75, 0, 0 instead?
+## robot.move_to(gridpoint_xyz, tool_orientation)
+# NOTE: above doesn't seem to lead to sensible calibration steps with my workspace limits :(
+'''
 
 # ---------------------------------------------
 
@@ -70,7 +84,7 @@ observed_pix = []
 
 # ---------------------------------------------
 # Move robot to home pose
-robot = PyUR(send_ur5_progs=False)
+robot = PyUR(send_ur5_progs=True)
 robot.open_gripper()
 MyCam = Camera()
 
@@ -87,16 +101,16 @@ logger.debug('Collecting data...')
 
 start = time.time()
 for calib_pt_idx in range(num_calib_grid_pts):
-    tool_position = calib_grid_pts[calib_pt_idx, :]
+    gridpoint_xyz = calib_grid_pts[calib_pt_idx, :]
 
     dt = time.time() - start
     logger.info('# %d/%d . Moving to: %s. Elapsed: %.1f secs' % (calib_pt_idx,
                                                                  num_calib_grid_pts,
-                                                                 tool_position,
+                                                                 gridpoint_xyz,
                                                                  dt))
 
-    robot.move_to(tool_position, tool_orientation)
-    time.sleep(1)
+    robot.move_to(gridpoint_xyz, tool_orientation)
+    time.sleep(2.5)
 
     # Find checkerboard center
     checkerboard_size = (3, 3)
@@ -127,14 +141,14 @@ for calib_pt_idx in range(num_calib_grid_pts):
         # Save calibration point and observed checkerboard center
         observed_pts.append(
             [checkerboard_x, checkerboard_y, checkerboard_z])
-        # tool_position[2] += checkerboard_offset_from_tool
-        checker_position = tool_position + checkerboard_offset_from_tool
+        # gridpoint_xyz[2] += checkerboard_offset_from_tool
+        checker_position = gridpoint_xyz + checkerboard_offset_from_tool
 
         logger.debug('I measured (calculated)' + str(checker_position))
         logger.debug('I observed (realsense) %.2f %.2f %.2f' %
                      (checkerboard_x, checkerboard_y, checkerboard_z))
 
-        measured_pts.append(tool_position)
+        measured_pts.append(gridpoint_xyz)
         observed_pix.append(checkerboard_pix)
 
         # Draw and display the corners
@@ -218,6 +232,10 @@ camera_depth_offset = optim_result.x
 
 # Save camera optimized offset and camera pose
 logger.debug('Saving...')
+logger.info('observed_pix \n%s' % str(observed_pix))
+logger.info('measured_ptx \n%s' % str(measured_pts))
+logger.info('observed_pix \n%s' % str(observed_pts))
+logger.info('len observed_pix \n%s' % str(len(observed_pts)))
 
 np.savetxt('real/measured_pts.txt', measured_pts, delimiter=' ')
 np.savetxt('real/observed_pts.txt', observed_pts, delimiter=' ')
@@ -226,6 +244,7 @@ np.savetxt('real/camera_depth_scale.txt', camera_depth_offset, delimiter=' ')
 
 get_rigid_transform_error(camera_depth_offset)
 camera_pose = np.linalg.inv(world2camera)
+logger.warning('camera pose\n%s' % str(camera_pose))
 np.savetxt('real/camera_pose.txt', camera_pose, delimiter=' ')
 
 logger.info('Done.')
