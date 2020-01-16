@@ -44,9 +44,10 @@ def main(args):
 
     # ------------- Algorithm options -------------
     # 'reactive' (supervised learning) or 'reinforcement' (reinforcement learning ie Q-learning)
-    method = args.method
+    #method = args.method
     # Use immediate rewards (from change detection) for pushing?
-    push_rewards = args.push_rewards if method == 'reinforcement' else None
+    # NOTE: removed
+    #push_rewards = args.push_rewards if method == 'reinforcement' else None
 
     future_reward_discount = args.future_reward_discount
     experience_replay = args.experience_replay  # Use prioritized experience replay?
@@ -85,7 +86,7 @@ def main(args):
         robot = Robot(send_ur5_progs=args.send_ur5_progs)
 
     # Initialize trainer
-    trainer = Trainer(method, push_rewards, future_reward_discount,
+    trainer = Trainer(method, future_reward_discount,
                       dont_train, load_snapshot, snapshot_file, force_cpu)
 
     # Initialize data logger
@@ -292,12 +293,14 @@ if __name__ == '__main__':
                                                     help='force code to run in CPU mode')
 
     # ------------- Algorithm options -------------
-    parser.add_argument('--push_rewards', dest='push_rewards',
-                            action='store_true', default=False,
-                            help='use immediate rewards (from change detection) for pushing?')
+    #parser.add_argument('--push_rewards', dest='push_rewards',
+                            # action='store_true', default=False,
+                            # help='use immediate rewards (from change
+                            # detection) for pushing? Only valid if method is
+                            # reinforcement and not reactive')
     # We only use reinforcement (immediate online rewards) for now
-    parser.add_argument('--method', dest='method', action='store', default='reinforcement',
-                        help='set to \'reactive\' (supervised learning) or \'reinforcement\' (reinforcement learning ie Q-learning)')
+    #parser.add_argument('--method', dest='method', action='store', default='reinforcement',
+                        # help='set to \'reactive\' (supervised learning) or \'reinforcement\' (reinforcement learning ie Q-learning)')
     parser.add_argument('--future_reward_discount', dest='future_reward_discount', type=float, action='store', default=0.5)
     parser.add_argument('--experience_replay', dest='experience_replay', action='store_true',
                         default=False,              help='use prioritized experience replay?')
