@@ -40,6 +40,8 @@ DEFAULT_JOINT_ACC = 0.7
 WORKSPACE_LIMITS = np.asarray(
     [[-0.650, -0.375], [-0.250, -0.090], [-0.240, -0.180]])
 
+LOG_WAIT_FOR_MOVE = True
+
 # -- Camera
 HEIGHTMAP_RESOLUTION = 0.00115
 # parser.add_argument('--heightmap_resolution', dest='heightmap_resolution',

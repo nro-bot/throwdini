@@ -93,6 +93,8 @@ class PyUR(object):
 
     # -- Gripper commands
     def activate_gripper(self):
+        self.logger.warning('Attempting to start RG2 gripper! Expect open-close several times. Check Program>Installation>RG Configuration>Enable RG is **unchecked**')
+
         prog_sanity = \
             '''
         def sanityCheck():
@@ -164,7 +166,8 @@ class PyUR(object):
 
     # -- Data commands
     def get_state(self, subpackage):
-        def get_joint_data(_log=True):
+        _log = constants.LOG_WAIT_FOR_MOVE
+        def get_joint_data():
             jts = self.secmon.get_joint_data()
             joint_positions = [jts["q_actual0"], jts["q_actual1"],
                                jts["q_actual2"], jts["q_actual3"],
@@ -174,7 +177,7 @@ class PyUR(object):
                                   str(joint_positions))
             return joint_positions
 
-        def get_cartesian_info(_log=True):
+        def get_cartesian_info():
             pose = self.secmon.get_cartesian_info()
             if pose:
                 pose = [pose["X"], pose["Y"], pose["Z"],
@@ -187,7 +190,7 @@ class PyUR(object):
             pose = pose.pose_vector.tolist()
             return pose
 
-        def get_gripper_width(_log=True):
+        def get_gripper_width():
             width = self.secmon.get_tool_analog_in(2)
             if _log:
                 self.logger.debug(

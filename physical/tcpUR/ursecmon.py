@@ -93,7 +93,7 @@ class ParserUtils(object):
                     self.version = (3, 5)
                     # TODO: what is the difference?
                     original_fmt_urx_library = "!IBQ???????BBddc"
-                    new_fmt = "!IBQ???????BBddB"
+                    #new_fmt = "!IBQ???????BBddB"
 
                     allData['RobotModeData'] = self._get_data(pdata, original_fmt_urx_library, ("size", "type", "timestamp", "isRobotConnected", "isRealRobotEnabled", "isPowerOnRobot", "isEmergencyStopped",
                                                                                                 "isSecurityStopped", "isProgramRunning", "isProgramPaused", "robotMode", "controlMode", "speedFraction", "speedScaling", "speedFractionLimit", "reservedByUR"))
@@ -523,7 +523,6 @@ class SecondaryMonitor(Thread):
             self.wait()
         with self._dictLock:
             astr = self._dict["ToolData"]["analogInput" + str(nb)]
-            print(astr)
             return astr
 
     # NOTE: added by nouyang

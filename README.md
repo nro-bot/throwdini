@@ -30,11 +30,20 @@ $ python __testcolors.py
 - Migrated to pyUR library
 - Added `combo_move` function to clarify move commands
 
-
-###
+### Notes
 
 Reactive net used only for results
+Run in ipython
+```python
+>>> import constants; from physical.tcpUR.pyUR import PyUR; robot = PyUR(send_ur5
+    ...: _progs=True);
 
+>>> pos = np.array([-0.640, -0.250, -0.240])
+>>> robot.move_to(pos, constants.CALIBRATE_TOOL_ORIENTATION)
+>>> robot.close()
+```
+
+-------------------------------
 
 # Original README follows
 
