@@ -23,7 +23,7 @@ TCP_PORT = 30002
 RTC_HOST_IP = "10.75.15.199"
 RTC_PORT = 30003
 
-USE_GLOBAL_SEND_UR5_PROGS = True 
+USE_GLOBAL_SEND_UR5_PROGS = False
 # otherwise defined by instance init args, or if not specified on init default to TruE
 GLOBAL_SEND_UR5_PROGS = False
 # Mostly use this as a flag to DEFINITELY not send ur5 progs
@@ -38,14 +38,10 @@ DEFAULT_JOINT_ACC = 0.7
 # ([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]])  -- orig = 0.448 x 0.448 x 0.155
 # w
 WORKSPACE_LIMITS = np.asarray(
-        [[-0.600, -0.152], [-0.250, 0.224], [-0.280, -0.150]])
-    #[[-0.600, -0.550], [-0.150, 0.100], [-0.280, -0.150]])
-    #[[-0.700, -0.550], [-0.250, 0.150], [-0.240, -0.090]])
-
+    [[-0.650, -0.375], [-0.250, -0.090], [-0.240, -0.180]])
 
 # -- Camera
-#HEIGHTMAP_RESOLUTION = 0.00115
-HEIGHTMAP_RESOLUTION = 0.002
+HEIGHTMAP_RESOLUTION = 0.00115
 # parser.add_argument('--heightmap_resolution', dest='heightmap_resolution',
 
 
@@ -53,6 +49,11 @@ HEIGHTMAP_RESOLUTION = 0.002
 GRIPPER_OPEN_THRESH = 0.26
 
 # -- Calibrate.py
+# Slightly different as the checkerboard must be in=frame, and it sticks out a
+# bit
+CALIBRATE_WORKSPACE_LIMITS = np.asarray(
+    [[-0.600, -0.370], [-0.250, -0.050], [-0.240, -0.150]])
+
 CALIBRATE_HOME = np.deg2rad(np.array([0, -16., 90., -253, -86.5, -181.]))
 CALIBRATE_TOOL_ORIENTATION = [1.23, -1.19, -1.19]
 # When grasping (vs calibrating), where robot should go when turn on

@@ -30,7 +30,7 @@ logger.warning("Now running calibration script, prepare for robot moving")
 
 
 # ---------------------------------------------
-workspace_limits = constants.WORKSPACE_LIMITS
+workspace_limits = constants.CALIBRATE_WORKSPACE_LIMITS
 
 calib_grid_step = constants.GRID_STEP
 
@@ -115,6 +115,12 @@ robot.move_joints(constants.CALIBRATE_HOME[:3], constants.CALIBRATE_HOME[3:])
 logger.debug('Collecting data...')
 start = time.time()
 
+
+# SET SLEEP TIME. If robot moves too slowly relative to sleep time, then the
+# robot will not pause between steps leading to blurred image for calib. 
+SLEEP_TIME = 2.0
+logger.warning('Time btw images (must be > robot mvmt time!) is: %0.2f' % SLEEP_TIME)
+
 for calib_pt_idx in range(num_calib_grid_pts):
     gridpoint_xyz = calib_grid_pts[calib_pt_idx, :]
 
@@ -125,7 +131,8 @@ for calib_pt_idx in range(num_calib_grid_pts):
                                                                  dt))
 
     robot.move_to(gridpoint_xyz, tool_orientation)
-    time.sleep(2.5)
+
+    time.sleep(SLEEP_TIME)
 
     # Find checkerboard center
     checkerboard_size = (3, 3)
@@ -150,7 +157,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
         checkerboard_y = np.multiply(
             checkerboard_pix[1] - MyCam.intrinsics[1][2], checkerboard_z / MyCam.intrinsics[1][1])
         if checkerboard_z == 0:
-            logger.debug('no depth info found')
+            logger.warning('no depth info found')
             continue
 
         # Save calibration point and observed checkerboard center
@@ -249,10 +256,11 @@ camera_depth_offset = optim_result.x
 
 # Save camera optimized offset and camera pose
 logger.debug('Saving...')
-logger.info('observed_pix \n%s' % str(observed_pix))
-logger.info('measured_ptx \n%s' % str(measured_pts))
-logger.info('observed_pix \n%s' % str(observed_pts))
-logger.info('len observed_pix \n%s' % str(len(observed_pts)))
+logger.debug('observed_pix \n%s' % str(observed_pix))
+logger.debug('measured_ptx \n%s' % str(measured_pts))
+logger.debug('observed_pix \n%s' % str(observed_pts))
+# 'If number of datapts lower than expected even with checkerboard in-frame, check depth data exists; camera may be too close'
+logger.info('Number of len observed_pix: %s' % str(len(observed_pts)))
 
 np.savetxt('real/measured_pts.txt', measured_pts, delimiter=' ')
 np.savetxt('real/observed_pts.txt', observed_pts, delimiter=' ')
@@ -261,7 +269,7 @@ np.savetxt('real/camera_depth_scale.txt', camera_depth_offset, delimiter=' ')
 
 get_rigid_transform_error(camera_depth_offset)
 camera_pose = np.linalg.inv(world2camera)
-logger.warning('camera pose\n%s' % str(camera_pose))
+logger.info('camera pose\n%s' % str(camera_pose))
 np.savetxt('real/camera_pose.txt', camera_pose, delimiter=' ')
 
 logger.info('Done.')
