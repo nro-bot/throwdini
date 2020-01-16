@@ -64,8 +64,9 @@ class PyUR(object):
             constants.TCP_HOST_IP)  # host ip
 
         # self.activate_gripper()
-        print('! ---------- NOTE: Make sure to deactivate gripper in Program robot>Installation tab!')
-        print('Also, textmsg() shows up in progam robot > Log tab')
+        self.logger.debug('''
+! -- NOTE: Make sure to deactivate gripper in Program robot>Installation tab!')
+'Also, protip, for urscript, textmsg() shows up in progam robot > Log tab''')
 
         # Set limits on where robot can go
         self.workspace_limits = constants.WORKSPACE_LIMITS
@@ -93,7 +94,8 @@ class PyUR(object):
 
     # -- Gripper commands
     def activate_gripper(self):
-        self.logger.warning('Attempting to start RG2 gripper! Expect open-close several times. Check Program>Installation>RG Configuration>Enable RG is **unchecked**')
+        self.logger.warning('Attempting to start RG2 gripper! Likely gripper open-close several times.' )
+        self.logger.debug('Protip: Check Program>Installation>RG Configuration>Enable RG is **unchecked**')
 
         prog_sanity = \
             '''
@@ -150,11 +152,11 @@ class PyUR(object):
         self.send_program(prog)
         # self.send_program(prog_sanity)
 
-    def open_gripper(self, gripper_async=False):
+    def open_gripper(self):
         self.send_program("set_digital_out(8,False)\n")
         self.logger.debug("opening gripper")
 
-    def close_gripper(self, gripper_async=False):
+    def close_gripper(self):
         self.send_program("set_digital_out(8,True)\n")
         self.logger.debug("Closing gripper")
         gripper_fully_closed = self.check_grasp()
@@ -166,13 +168,13 @@ class PyUR(object):
 
     # -- Data commands
     def get_state(self, subpackage):
-        _log = constants.LOG_WAIT_FOR_MOVE
+        LOG = constants.LOG_WAIT_FOR_MOVE
         def get_joint_data():
             jts = self.secmon.get_joint_data()
             joint_positions = [jts["q_actual0"], jts["q_actual1"],
                                jts["q_actual2"], jts["q_actual3"],
                                jts["q_actual4"], jts["q_actual5"]]
-            if _log:
+            if LOG:
                 self.logger.debug("Received joint data from robot: %s",
                                   str(joint_positions))
             return joint_positions
@@ -182,7 +184,7 @@ class PyUR(object):
             if pose:
                 pose = [pose["X"], pose["Y"], pose["Z"],
                         pose["Rx"], pose["Ry"], pose["Rz"]]
-            if _log:
+            if LOG:
                 self.logger.debug(
                     "Received pose data from robot: %s", str(pose))
 
@@ -192,7 +194,7 @@ class PyUR(object):
 
         def get_gripper_width():
             width = self.secmon.get_tool_analog_in(2)
-            if _log:
+            if LOG:
                 self.logger.debug(
                     "Received gripper width from robot: % s" %
                     str(width))

@@ -48,7 +48,7 @@ HEIGHTMAP_RESOLUTION = 0.00115
 
 
 # -- Gripper
-GRIPPER_OPEN_THRESH = 0.26
+GRIPPER_OPEN_THRESH = 0.5
 
 # -- Calibrate.py
 # Slightly different as the checkerboard must be in=frame, and it sticks out a

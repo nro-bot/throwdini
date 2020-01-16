@@ -35,11 +35,15 @@ $ python __testcolors.py
 Reactive net used only for results
 Run in ipython
 ```python
->>> import constants; from physical.tcpUR.pyUR import PyUR; robot = PyUR(send_ur5
+>>> import constants; from physical.tcpUR.pyUR import PyUR; r = PyUR(send_ur5
     ...: _progs=True);
 
 >>> pos = np.array([-0.640, -0.250, -0.240])
->>> robot.move_to(pos, constants.CALIBRATE_TOOL_ORIENTATION)
+>>> r.move_to(pos, constants.CALIBRATE_TOOL_ORIENTATION)
+>>> r.activate_gripper()
+>>> r.open_gripper()
+>>> r.check_grasp()
+>>> r.get_state('gripper_width')
 >>> robot.close()
 ```
 
